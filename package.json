@@ -7,6 +7,8 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
+    "deploy": "npm run build && wrangler deploy --config wrangler.jsonc",
+    "preview:worker": "npm run build && wrangler dev --config wrangler.jsonc",
     "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json"
   },
   "devDependencies": {
