@@ -8,3 +8,4 @@ dist
 !.env.development.example
 !.env.production.example
 .DS_Store
+.wrangler
