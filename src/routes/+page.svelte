@@ -1218,7 +1218,7 @@
   </div>
 {:else}
 <div class="app-shell">
-  <aside class:mobile-open={showMobileNav} class="sidebar">
+  <aside class:mobile-open={showMobileNav && !showCircleModal && !showAddModal} class="sidebar">
     <div class="brand-row">
       <div class="brand-mark"><Utensils size={19} strokeWidth={2.2} /></div>
       <div>
@@ -1273,7 +1273,7 @@
     </div>
   </aside>
 
-  {#if showMobileNav}<button class="mobile-nav-scrim" aria-label={t('closeMenu')} onclick={() => (showMobileNav = false)}></button>{/if}
+  {#if showMobileNav && !showCircleModal && !showAddModal}<button class="mobile-nav-scrim" aria-label={t('closeMenu')} onclick={() => (showMobileNav = false)}></button>{/if}
 
   <main class="main-content">
     <header class="topbar" class:mobile-search-open={showMobileSearch}>
