@@ -328,16 +328,26 @@
   }
 
   async function toggleMobileSearch() {
-    showMobileSearch = !showMobileSearch;
+    const shouldOpen = !showMobileSearch;
+    showNotificationMenu = false;
+    showMobileNav = false;
+    showMobileSearch = shouldOpen;
     if (showMobileSearch) {
       await tick();
       searchInput?.focus();
     }
   }
 
+  function openMobileNavigation() {
+    showMobileSearch = false;
+    showNotificationMenu = false;
+    showMobileNav = true;
+  }
+
   function closeNotificationMenuOnOutsidePointer(event: PointerEvent) {
-    if (!showNotificationMenu || !(event.target instanceof Element)) return;
-    if (!event.target.closest('.notification-wrap')) showNotificationMenu = false;
+    if (!(event.target instanceof Element)) return;
+    if (showNotificationMenu && !event.target.closest('.notification-wrap')) showNotificationMenu = false;
+    if (showMobileSearch && !event.target.closest('.search-box, .mobile-search-trigger')) showMobileSearch = false;
   }
 
   function handleGlobalKeydown(event: KeyboardEvent) {
@@ -428,6 +438,7 @@
   function setView(view: 'overview' | 'meals' | 'top') {
     activeView = view;
     showMobileNav = false;
+    showMobileSearch = false;
   }
 
   function selectMeal(meal: Meal) {
@@ -1247,9 +1258,11 @@
     </div>
   </aside>
 
+  {#if showMobileNav}<button class="mobile-nav-scrim" aria-label={t('closeMenu')} onclick={() => (showMobileNav = false)}></button>{/if}
+
   <main class="main-content">
-    <header class="topbar">
-      <button class="mobile-menu mobile-only" aria-label={t('openMenu')} onclick={() => (showMobileNav = true)}><Menu size={22} /></button>
+    <header class="topbar" class:mobile-search-open={showMobileSearch}>
+      <button class="mobile-menu mobile-only" aria-label={t('openMenu')} onclick={openMobileNavigation}><Menu size={22} /></button>
       <div class="breadcrumbs"><span>RateMyPlate</span><ChevronRight size={14} /><strong>{activeView === 'top' ? t('topRated') : activeView === 'meals' ? t('myMeals') : t('overview')}</strong></div>
       <div class="topbar-actions">
         <button class="mobile-search-trigger mobile-only" aria-label={t(showMobileSearch ? 'closeSearch' : 'openSearch')} aria-expanded={showMobileSearch} onclick={toggleMobileSearch}>
@@ -2000,6 +2013,30 @@
       overflow: hidden;
     }
 
+    .sidebar {
+      z-index: 32;
+      inset: 0 auto 0 0;
+      height: 100vh;
+      height: 100dvh;
+      max-height: 100dvh;
+      padding-top: calc(27px + env(safe-area-inset-top));
+      padding-bottom: calc(18px + env(safe-area-inset-bottom));
+    }
+
+    .mobile-nav-scrim {
+      position: fixed;
+      z-index: 31;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: 0;
+      background: rgba(5, 13, 8, .44);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+
     .main-content {
       display: flex;
       height: 100%;
@@ -2017,6 +2054,11 @@
       padding: env(safe-area-inset-top) 17px 0;
     }
 
+    .topbar.mobile-search-open {
+      height: calc(112px + env(safe-area-inset-top));
+      align-items: flex-start;
+    }
+
     .page-wrap {
       min-height: 0;
       flex: 1 1 auto;
@@ -2030,14 +2072,14 @@
     .breadcrumbs { min-width: 0; overflow: hidden; white-space: nowrap; }
     .breadcrumbs span, .breadcrumbs :global(svg) { flex: 0 0 auto; }
     .breadcrumbs strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .topbar-actions { position: relative; flex: 0 0 auto; gap: 9px; }
+    .topbar-actions { position: static; flex: 0 0 auto; gap: 9px; }
     .mobile-search-trigger { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; padding: 0; border: 0; border-radius: 8px; color: #627269; background: transparent; }
     .search-box { display: none; }
-    .search-box.mobile-open { position: absolute; z-index: 24; top: 0; right: 75px; display: flex; width: min(220px, calc(100vw - 176px)); min-width: 136px; height: 34px; padding: 0 9px; border-color: #dce4dc; background: #fffefa; }
+    .search-box.mobile-open { position: absolute; z-index: 24; top: auto; right: 17px; bottom: 10px; left: 17px; display: flex; width: auto; min-width: 0; height: 38px; padding: 0 11px; border-color: #dce4dc; background: #fffefa; }
     .search-box.mobile-open input { display: block; width: 100%; font-size: 10px; }
     .search-box.mobile-open :global(.search-icon) { flex: 0 0 auto; width: 15px; height: 15px; }
     .notification-wrap { z-index: 25; }
-    .notification-menu { max-height: calc(100dvh - 90px); overflow-y: auto; overscroll-behavior: contain; }
+    .notification-menu { position: fixed; z-index: 45; top: calc(65px + env(safe-area-inset-top) + 8px); right: auto; left: 50%; width: min(320px, calc(100vw - 28px)); max-height: calc(100dvh - 90px); overflow-y: auto; overscroll-behavior: contain; transform: translateX(-50%); }
     .view-toolbar { align-items: center; gap: 8px; }
     .filter-pills { min-width: 0; max-width: calc(100vw - 120px); align-items: center; gap: 4px; padding-bottom: 0; }
     .filter-pill { height: 34px; gap: 4px; padding: 0 5px; font-size: 9px; white-space: nowrap; }
