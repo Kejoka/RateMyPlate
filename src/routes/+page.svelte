@@ -65,9 +65,9 @@
   } from '$lib/appwrite';
   import { compressImageToJpeg } from '$lib/image';
   import MealImage from '$lib/MealImage.svelte';
-  import { translate, type Language } from '$lib/i18n';
+  import { translate, translateErrorMessage, type Language } from '$lib/i18n';
   import type { AppNotification, Circle, CircleMember, DietaryTag, Meal, NewMeal, Rating, UserProfile } from '$lib/types';
-  import { createRecipeId, emptyRecipe, formatIngredient, formatStep, parseRecipe } from '$lib/recipe';
+  import { createRecipeId, defaultRecipeCategory, emptyRecipe, formatIngredient, formatStep, parseRecipe } from '$lib/recipe';
 
   type AppUser = { $id: string; name: string; email: string; prefs?: Record<string, unknown> };
 
@@ -239,7 +239,6 @@
   let circleInviteSearchFailed = $state(false);
   let circleInviteSearchId = 0;
   let userProfile = $state<UserProfile | null>(null);
-  let profileSetupError = $state('');
   let notifications = $state<AppNotification[]>([]);
   let profileImageUrl = $state('');
   let profileImageObjectUrl = '';
@@ -289,10 +288,8 @@
         authUsername.trim() || undefined,
         currentUser.email
       );
-      profileSetupError = userProfile ? '' : 'profile row is not configured';
     } catch (error) {
       userProfile = null;
-      profileSetupError = errorMessage(error, 'profile row creation failed');
       console.error('Profile setup failed.', error);
     }
     notifications = await listAppwriteNotifications(currentUser.$id).catch(() => []);
@@ -311,7 +308,7 @@
       date: meal.date,
       recipe: meal.recipe ?? '',
       recipeData: parseRecipe(meal.recipe) ?? { ...emptyRecipe(), source: meal.recipe ?? '' },
-      note: meal.note,
+      note: meal.note === 'No note added.' || meal.note === 'Keine Notiz hinzugefügt.' ? '' : meal.note,
       circle: meal.circle,
       image: meal.image,
       dietaryTags: allowedDietaryTags(meal.dietaryTags)
@@ -491,7 +488,18 @@
   }
 
   function errorMessage(error: unknown, fallback: string) {
-    return error instanceof Error && error.message ? error.message : fallback;
+    const message = error instanceof Error ? translateErrorMessage(language, error.message) : null;
+    return message || fallback || t('unexpectedError');
+  }
+
+  function recipeCategoryLabel(category: string) {
+    return category.trim().toLowerCase() === defaultRecipeCategory ? t('otherCategory') : category;
+  }
+
+  function mealNote(note: string) {
+    return !note || note === 'No note added.' || note === 'Keine Notiz hinzugefügt.'
+      ? t('newMemoryNote')
+      : note;
   }
 
   async function setProfileImage(imageId?: string) {
@@ -664,11 +672,11 @@
       await setProfileImage(typeof currentUser?.prefs?.profileImageId === 'string'
         ? currentUser.prefs.profileImageId
         : undefined);
-      if (!currentUser) throw new Error('We could not start your session. Please try again.');
+      if (!currentUser) throw new Error(t('sessionStartFailed'));
       await hydrateUserExtras();
       await loadUserMeals();
     } catch (error) {
-      authError = errorMessage(error, 'That email or password did not work.');
+      authError = errorMessage(error, t('authFailed'));
     } finally {
       authBusy = false;
     }
@@ -778,7 +786,7 @@
   }
 
   function addRecipeIngredient() {
-    const category = newMeal.recipeData.categories[0] || 'Other';
+    const category = newMeal.recipeData.categories[0] || defaultRecipeCategory;
     newMeal.recipeData.ingredients = [...newMeal.recipeData.ingredients, { id: createRecipeId(), name: '', amount: 1, unit: 'g', category }];
   }
 
@@ -850,7 +858,7 @@
         name: newMeal.name.trim(),
         date: newMeal.date,
         recipe: recipeValue,
-        note: newMeal.note.trim() || t('newMemoryNote'),
+        note: newMeal.note.trim(),
         circle: newMeal.circle,
         dietaryTags: [...newMeal.dietaryTags],
         image: imagePreview || editingMeal.image
@@ -890,7 +898,7 @@
         imagePreview ||
         'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1200&q=88',
       recipe: recipeValue,
-      note: newMeal.note.trim() || t('newMemoryNote'),
+      note: newMeal.note.trim(),
       circle: newMeal.circle,
       addedBy: displayName,
       accent: '#287344',
@@ -1129,7 +1137,8 @@
 </script>
 
 <svelte:head>
-  <title>RateMyPlate — Meal ratings</title>
+  <title>{t('pageTitle')}</title>
+      <meta name="description" content={t('appDescription')} />
 </svelte:head>
 
 {#if appwriteConfigured && !authReady}
@@ -1147,7 +1156,7 @@
         <form class="auth-form" onsubmit={(event) => { event.preventDefault(); submitAuth(); }}>
           {#if authMode === 'signup'}<label class="field"><span>{t('yourName')} <i>*</i></span><input required autocomplete="name" placeholder={t('namePlaceholder')} bind:value={authName} /></label>{/if}
           {#if authMode === 'signup'}<label class="field"><span>{t('username')} <i>*</i></span><input required minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]+" autocomplete="username" placeholder={t('usernamePlaceholder')} bind:value={authUsername} /></label>{/if}
-          <label class="field"><span>{t('email')} <i>*</i></span><input required type="email" autocomplete="email" placeholder="you@example.com" bind:value={authEmail} /></label>
+          <label class="field"><span>{t('email')} <i>*</i></span><input required type="email" autocomplete="email" placeholder={t('emailPlaceholder')} bind:value={authEmail} /></label>
           <label class="field"><span>{t('password')} <i>*</i></span><input required type="password" minlength="8" autocomplete={authMode === 'login' ? 'current-password' : 'new-password'} placeholder={t('passwordPlaceholder')} bind:value={authPassword} /></label>
           {#if authError}<div class="auth-error" role="alert">{authError}</div>{/if}
           <button class="primary-button auth-submit" type="submit" disabled={authBusy}>{authBusy ? t('opening') : authMode === 'login' ? t('signIn') : t('createAccount')}<ArrowUpRight size={16} /></button>
@@ -1177,7 +1186,7 @@
     </div>
 
     <div class="nav-label">{t('yourKitchen')}</div>
-    <nav class="main-nav" aria-label="Main navigation">
+    <nav class="main-nav" aria-label={t('mainNavigation')}>
       {#each navItems as item}
         {@const NavIcon = item.icon}
         <button class:active={activeView === item.id} class="nav-item" onclick={() => setView(item.id)}>
@@ -1204,11 +1213,11 @@
         <span class="status-pulse"></span>
         {appwriteConfigured
           ? dataConfigured
-            ? t('appwriteConnected', { environment: appEnvironment === 'production' ? 'production' : 'development' })
+            ? t('appwriteConnected', { environment: appEnvironment === 'production' ? t('environmentProduction') : t('environmentDevelopment') })
             : t('finishAppwrite')
           : t('localPreview')}
       </div>
-      <button class="language-toggle" onclick={toggleLanguage}><span>{t('language')}</span><strong>{language === 'en' ? 'DE' : 'EN'}</strong></button>
+      <button class="language-toggle" aria-label={t(language === 'en' ? 'switchToGerman' : 'switchToEnglish')} onclick={toggleLanguage}><span>{t('language')}</span><strong>{language === 'en' ? 'DE' : 'EN'}</strong></button>
       {#if currentUser}<button class="nav-item settings" onclick={signOut}><LogOut size={18} strokeWidth={1.9} /><span>{t('signOut')}</span></button>{:else}<button class="nav-item settings"><Settings size={18} strokeWidth={1.9} /><span>{t('settings')}</span></button>{/if}
     </div>
   </aside>
@@ -1308,7 +1317,7 @@
           <div class="view-toolbar"><div class="filter-pills"><button class:active={archiveSort === 'date'} class="filter-pill" onclick={() => (archiveSort = 'date')}><CalendarDays size={15} /> {t('byDate')}</button><button class:active={archiveSort === 'rating'} class="filter-pill" onclick={() => (archiveSort = 'rating')}><Trophy size={15} /> {t('byRating')}</button></div><div class="filter-control"><button class="quiet-button" onclick={() => (showFilterMenu = !showFilterMenu)}><Filter size={15} /> {t('filter')} <ChevronDown size={14} /></button>{#if showFilterMenu}<div class="filter-menu"><label><span>{t('filterByCircle')}</span><select bind:value={filterCircle}><option value="all">{t('allCircles')}</option><option value="__none__">{t('noGroup')}</option>{#each circles as circle}<option value={circle.name}>{circle.name}</option>{/each}</select></label><label><span>{t('filterByYear')}</span><select bind:value={filterYear}><option value="all">{t('allYears')}</option>{#each years as year}<option value={year}>{year}</option>{/each}</select></label><button class="primary-button small-button" onclick={() => (showFilterMenu = false)}>{t('apply')}</button></div>{/if}</div></div>
           <div class="archive-grid">
             {#each groups as group}
-              <section class="archive-group"><div class="archive-heading"><span class="year-pill">{group.year}</span><h2>{group.month}</h2><span class="archive-count">{group.meals.length === 1 ? t('memory', { count: group.meals.length }) : t('memories', { count: group.meals.length })}</span></div><div class="archive-meals">{#each group.meals as meal}<button class="archive-card" onclick={() => selectMeal(meal)}><div class="archive-image"><MealImage src={meal.image} alt={meal.name} /><span class="archive-date">{formatDate(meal.date)}</span><span class="archive-heart" role="button" tabindex="0" aria-label={savedMealIds.includes(meal.id) ? t('removeSavedMeal') : t('saveMeal')} onclick={(event) => { event.stopPropagation(); toggleSavedMeal(meal); }} onkeydown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); toggleSavedMeal(meal); } }}>{#if savedMealIds.includes(meal.id)}<Heart size={14} fill="currentColor" />{:else}<Heart size={14} />{/if}</span></div><div class="archive-card-content"><div class="archive-title-row"><h3>{meal.name}</h3><div class="archive-rating"><Star size={13} fill="currentColor" />{average(meal.ratings).toFixed(1)}</div></div><p>{meal.note}</p>{#if allowedDietaryTags(meal.dietaryTags).length}<div class="card-tags">{#each allowedDietaryTags(meal.dietaryTags) as tag}<span>{tag === 'vegan' ? t('dietaryVegan') : t('dietaryVegetarian')}</span>{/each}</div>{/if}<span class="archive-meta">{groupLabel(meal.circle)} <i>·</i> {t('tableRatings', { count: meal.ratings.length })}</span></div></button>{/each}</div></section>
+              <section class="archive-group"><div class="archive-heading"><span class="year-pill">{group.year}</span><h2>{group.month}</h2><span class="archive-count">{group.meals.length === 1 ? t('memory', { count: group.meals.length }) : t('memories', { count: group.meals.length })}</span></div><div class="archive-meals">{#each group.meals as meal}<button class="archive-card" onclick={() => selectMeal(meal)}><div class="archive-image"><MealImage src={meal.image} alt={meal.name} /><span class="archive-date">{formatDate(meal.date)}</span><span class="archive-heart" role="button" tabindex="0" aria-label={savedMealIds.includes(meal.id) ? t('removeSavedMeal') : t('saveMeal')} onclick={(event) => { event.stopPropagation(); toggleSavedMeal(meal); }} onkeydown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); toggleSavedMeal(meal); } }}>{#if savedMealIds.includes(meal.id)}<Heart size={14} fill="currentColor" />{:else}<Heart size={14} />{/if}</span></div><div class="archive-card-content"><div class="archive-title-row"><h3>{meal.name}</h3><div class="archive-rating"><Star size={13} fill="currentColor" />{average(meal.ratings).toFixed(1)}</div></div><p>{mealNote(meal.note)}</p>{#if allowedDietaryTags(meal.dietaryTags).length}<div class="card-tags">{#each allowedDietaryTags(meal.dietaryTags) as tag}<span>{tag === 'vegan' ? t('dietaryVegan') : t('dietaryVegetarian')}</span>{/each}</div>{/if}<span class="archive-meta">{groupLabel(meal.circle)} <i>·</i> {t('tableRatings', { count: meal.ratings.length })}</span></div></button>{/each}</div></section>
             {:else}<div class="empty-state"><Utensils size={26} /><h3>{t('noMeals')}</h3><p>{t('noMealsCopy')}</p></div>{/each}
           </div>
         </section>
@@ -1316,7 +1325,7 @@
         <section class="top-view">
           <div class="top-intro"><div class="ranking-title"><Trophy size={22} color="#287344" /><div><strong>{t('allTimeFavorites')}</strong><span>{t('rankedByAverage')}</span></div></div><div class="top-summary"><strong>{overallAverage}</strong><span>{t('averageAcrossMeals', { count: meals.length })}</span></div></div>
           <div class="ranking-list">
-            {#each topMeals as meal, index}<button class="ranking-row" onclick={() => selectMeal(meal)}><span class:gold={index === 0} class="ranking-number">{String(index + 1).padStart(2, '0')}</span><div class="ranking-image"><MealImage src={meal.image} alt={meal.name} /></div><div class="ranking-copy"><h3>{meal.name}</h3><p>{meal.note}</p><span>{groupLabel(meal.circle)} <i>·</i> {t('loggedDate', { date: formatDate(meal.date) })}</span>{#if allowedDietaryTags(meal.dietaryTags).length}<div class="card-tags">{#each allowedDietaryTags(meal.dietaryTags) as tag}<span>{tag === 'vegan' ? t('dietaryVegan') : t('dietaryVegetarian')}</span>{/each}</div>{/if}</div><div class="rating-people"><div class="rating-avatars">{#each meal.ratings.slice(0, 3) as rating}<span style={`background: ${rating.color}`}>{rating.initials}</span>{/each}</div><small>{t('voices', { count: meal.ratings.length })}</small></div><div class="big-rating"><Star size={17} fill="currentColor" />{average(meal.ratings).toFixed(1)}<span>/ 5</span></div><ChevronRight size={18} color="#c1c8c1" /></button>{/each}
+            {#each topMeals as meal, index}<button class="ranking-row" onclick={() => selectMeal(meal)}><span class:gold={index === 0} class="ranking-number">{String(index + 1).padStart(2, '0')}</span><div class="ranking-image"><MealImage src={meal.image} alt={meal.name} /></div><div class="ranking-copy"><h3>{meal.name}</h3><p>{mealNote(meal.note)}</p><span>{groupLabel(meal.circle)} <i>·</i> {t('loggedDate', { date: formatDate(meal.date) })}</span>{#if allowedDietaryTags(meal.dietaryTags).length}<div class="card-tags">{#each allowedDietaryTags(meal.dietaryTags) as tag}<span>{tag === 'vegan' ? t('dietaryVegan') : t('dietaryVegetarian')}</span>{/each}</div>{/if}</div><div class="rating-people"><div class="rating-avatars">{#each meal.ratings.slice(0, 3) as rating}<span style={`background: ${rating.color}`}>{rating.initials}</span>{/each}</div><small>{t('voices', { count: meal.ratings.length })}</small></div><div class="big-rating"><Star size={17} fill="currentColor" />{average(meal.ratings).toFixed(1)}<span>/ 5</span></div><ChevronRight size={18} color="#c1c8c1" /></button>{/each}
           </div>
         </section>
       {/if}
@@ -1325,22 +1334,22 @@
 
   {#if selectedMeal}
     {@const recipeView = parseRecipe(selectedMeal.recipe)}
-    <aside class="detail-drawer" aria-label="Meal details">
+    <aside class="detail-drawer" aria-label={t('mealDetails')}>
       <div class="drawer-image"><MealImage src={selectedMeal.image} alt={selectedMeal.name} eager /><div class="drawer-image-top"><span class="drawer-tag"><span class="live-dot"></span>{groupLabel(selectedMeal.circle)}</span><button class="drawer-close" aria-label={t('closeDialog')} onclick={() => (selectedMeal = null)}><X size={17} /></button></div><div class="drawer-image-bottom"><span>{formatDate(selectedMeal.date)}</span><div class="drawer-menu-wrap">{#if canManageMeal(selectedMeal)}<button class="drawer-action" aria-label={t('moreOptions')} onclick={() => (showMealMenu = !showMealMenu)}><MoreHorizontal size={19} /></button>{#if showMealMenu}<div class="drawer-menu"><button onclick={() => selectedMeal && openEditMeal(selectedMeal)}>{t('editMeal')}</button><button onclick={removeMeal}>{t('deleteMeal')}</button></div>{/if}{/if}</div></div></div>
       <div class="drawer-content">
         <div class="drawer-title-row">
           <div><div class="eyebrow muted">{t('sharedBy', { name: selectedMeal.addedBy })}</div><h2>{selectedMeal.name}</h2></div>
           <button class:liked={savedMealIds.includes(selectedMeal.id)} class="like-button" aria-label={t('saveMeal')} onclick={() => selectedMeal && toggleSavedMeal(selectedMeal)}><Heart size={18} fill={savedMealIds.includes(selectedMeal.id) ? 'currentColor' : 'none'} /></button>
         </div>
-        <p class="drawer-note">{selectedMeal.note}</p>
+        <p class="drawer-note">{mealNote(selectedMeal.note)}</p>
         {#if selectedMeal.recipe && !recipeView}<div class="recipe-chip"><BookOpen size={16} /><span>{selectedMeal.recipe}</span></div>{/if}
         {#if recipeView}
           <section class="recipe-viewer">
             <div class="recipe-viewer-head"><div><BookOpen size={16} /><strong>{t('recipe')}</strong></div><label>{t('servings')} <input aria-label={t('servings')} type="number" min="1" step="1" bind:value={recipePortionView} /></label></div>
             <div class="recipe-unit-toggle" aria-label={t('ingredientUnit')}><button class:active={recipeUnitSystem === 'metric'} onclick={() => recipeUnitSystem = 'metric'}>{t('metric')}</button><button class:active={recipeUnitSystem === 'imperial'} onclick={() => recipeUnitSystem = 'imperial'}>{t('imperial')}</button></div>
             {#if recipeView.source}<a class="recipe-source" href={recipeView.source} target="_blank" rel="noreferrer">{t('openRecipeSource')}</a>{/if}
-            <div class="recipe-view-section"><h3>{t('ingredients')}</h3>{#each recipeView.categories as category}<div class="recipe-view-category"><strong>{category}</strong>{#each recipeView.ingredients.filter((item) => item.category === category) as ingredient (ingredient.id)}<div><span>{formatIngredient(ingredient, recipeView.portions, Math.max(1, Number(recipePortionView) || 1), recipeUnitSystem)}</span></div>{/each}</div>{/each}</div>
-            <div class="recipe-view-section"><h3>{t('method')}</h3><ol class="recipe-view-steps">{#each recipeView.steps as step, index (step.id)}<li><span>{index + 1}</span><p>{formatStep(step.instructions, recipeView, Math.max(1, Number(recipePortionView) || 1), recipeUnitSystem)}</p></li>{/each}</ol></div>
+            <div class="recipe-view-section"><h3>{t('ingredients')}</h3>{#each recipeView.categories as category}<div class="recipe-view-category"><strong>{recipeCategoryLabel(category)}</strong>{#each recipeView.ingredients.filter((item) => item.category === category) as ingredient (ingredient.id)}<div><span>{formatIngredient(ingredient, recipeView.portions, Math.max(1, Number(recipePortionView) || 1), recipeUnitSystem, language)}</span></div>{/each}</div>{/each}</div>
+            <div class="recipe-view-section"><h3>{t('method')}</h3><ol class="recipe-view-steps">{#each recipeView.steps as step, index (step.id)}<li><span>{index + 1}</span><p>{formatStep(step.instructions, recipeView, Math.max(1, Number(recipePortionView) || 1), recipeUnitSystem, language)}</p></li>{/each}</ol></div>
           </section>
         {/if}
         {#if selectedMeal.dietaryTags?.length}
@@ -1405,7 +1414,7 @@
           {#if editingCircle}
             <section class="circle-members" aria-labelledby="circle-members-title"><div class="members-heading"><strong id="circle-members-title">{t('groupMembers')}</strong><span>{t('people', { count: circleMembers.length })}</span></div>
               {#if circleMembers.length === 0}<p class="members-empty">{t('membersLoading')}</p>{/if}
-              {#each circleMembers as member (member.userId)}<div class="circle-member-row"><span class="member-avatar">{member.displayName.slice(0, 1).toUpperCase()}</span><span class="member-copy"><strong>@{member.username}</strong><small>{member.displayName}{member.isPending ? ` · ${t('invitePending')}` : ''}</small></span>{#if member.isAdmin}<span class="admin-badge">{t('groupAdmin')}</span>{:else if canManageCircle}<button type="button" class="member-remove" onclick={() => removeCircleMember(member)} disabled={circleBusy}>{t('removeMember')}</button>{/if}</div>{/each}
+              {#each circleMembers as member (member.userId)}<div class="circle-member-row"><span class="member-avatar">{(member.displayName || member.username).slice(0, 1).toUpperCase()}</span><span class="member-copy"><strong>@{member.username}</strong><small>{member.displayName ? `${member.displayName}${member.isPending ? ` · ${t('invitePending')}` : ''}` : member.isPending ? t('invitePending') : member.username}</small></span>{#if member.isAdmin}<span class="admin-badge">{t('groupAdmin')}</span>{:else if canManageCircle}<button type="button" class="member-remove" onclick={() => removeCircleMember(member)} disabled={circleBusy}>{t('removeMember')}</button>{/if}</div>{/each}
             </section>
           {/if}
           <div class="modal-footer"><span class="privacy-note"><Users size={15} /> {t('sharedWithCircle')}</span><div class="modal-actions">{#if editingCircle && canManageCircle}<button type="button" class="danger-button" onclick={() => editingCircle && removeCircle(editingCircle)} disabled={circleBusy}>{t('deleteCircle')}</button>{/if}{#if canManageCircle}<button type="submit" class="primary-button" disabled={circleBusy}>{editingCircle ? t('saveCircle') : t('createCircle')} <Check size={16} /></button>{/if}</div></div>
@@ -1420,18 +1429,18 @@
         <div class="modal-header"><div><div class="eyebrow"><Sparkles size={14} /> {editingMeal ? t('editMeal') : t('newMemory')}</div><h2 id="add-meal-title">{editingMeal ? t('editMeal') : t('whatDidYouMake')}</h2><p>{t('newMemoryCopy')}</p></div><button class="drawer-close light" aria-label={t('closeDialog')} onclick={() => { showAddModal = false; editingMeal = null; }}><X size={18} /></button></div>
         <form onsubmit={(event) => { event.preventDefault(); saveMeal(); }}>
           <div class="form-grid">
-            <label class="field full"><span>{t('dishName')} <i>*</i></span><input required placeholder="e.g. Lemon ricotta pasta" bind:value={newMeal.name} /></label>
+            <label class="field full"><span>{t('dishName')} <i>*</i></span><input required placeholder={t('dishNamePlaceholder')} bind:value={newMeal.name} /></label>
             <label class="field"><span>{t('whenWasIt')}</span><div class="input-with-icon"><CalendarDays size={16} /><input type="date" bind:value={newMeal.date} /></div></label>
             <label class="field"><span>{t('whichCircle')}</span><div class="select-wrap"><select bind:value={newMeal.circle}><option value="">{t('unsorted')}</option>{#each circles as circle}<option value={circle.name}>{circle.name}</option>{/each}</select><ChevronDown size={15} /></div></label>
             <fieldset class="recipe-editor full">
               <legend>{t('recipe')} <em>{t('optional')}</em></legend>
               <div class="recipe-editor-top"><label class="field"><span>{t('recipeSource')}</span><input placeholder={t('recipePlaceholder')} bind:value={newMeal.recipeData.source} /></label><label class="field"><span>{t('basePortions')}</span><input type="number" min="1" step="1" bind:value={newMeal.recipeData.portions} /></label></div>
               <div class="recipe-subheading"><strong>{t('ingredientCategories')}</strong><span>{t('ingredientCategoriesHint')}</span></div>
-              <div class="recipe-category-list">{#each newMeal.recipeData.categories as category}<span>{category}<button type="button" aria-label={`Remove ${category}`} disabled={newMeal.recipeData.categories.length <= 1 || newMeal.recipeData.ingredients.some((ingredient) => ingredient.category === category)} onclick={() => newMeal.recipeData.categories = newMeal.recipeData.categories.filter((item) => item !== category)}><X size={12} /></button></span>{/each}</div>
+              <div class="recipe-category-list">{#each newMeal.recipeData.categories as category}<span>{recipeCategoryLabel(category)}<button type="button" aria-label={t('removeCategory', { category: recipeCategoryLabel(category) })} disabled={newMeal.recipeData.categories.length <= 1 || newMeal.recipeData.ingredients.some((ingredient) => ingredient.category === category)} onclick={() => newMeal.recipeData.categories = newMeal.recipeData.categories.filter((item) => item !== category)}><X size={12} /></button></span>{/each}</div>
               <div class="recipe-category-add"><input aria-label={t('ingredientCategories')} placeholder={t('addCategory')} bind:value={recipeCategoryDraft} onkeydown={(event) => event.key === 'Enter' && (event.preventDefault(), addRecipeCategory())} /><button type="button" class="quiet-button" onclick={addRecipeCategory}><Plus size={14} /> {t('addCategory')}</button></div>
               <div class="recipe-subheading"><strong>{t('ingredients')}</strong><button type="button" class="quiet-button" onclick={addRecipeIngredient}><Plus size={14} /> {t('addIngredient')}</button></div>
               {#each newMeal.recipeData.ingredients as ingredient (ingredient.id)}
-                <div class="recipe-ingredient-row"><input aria-label={t('ingredientName')} placeholder={t('ingredientNamePlaceholder')} bind:value={ingredient.name} /><input aria-label={t('ingredientAmount')} type="number" min="0" step="any" bind:value={ingredient.amount} /><input aria-label={t('ingredientUnit')} list="ingredient-unit-options" placeholder={t('ingredientUnitPlaceholder')} bind:value={ingredient.unit} /><select aria-label={t('ingredientCategory')} bind:value={ingredient.category}>{#each newMeal.recipeData.categories as category}<option value={category}>{category}</option>{/each}</select><button type="button" class="recipe-remove" aria-label={t('deleteMeal')} onclick={() => removeRecipeIngredient(ingredient.id)}><X size={15} /></button></div>
+                <div class="recipe-ingredient-row"><input aria-label={t('ingredientName')} placeholder={t('ingredientNamePlaceholder')} bind:value={ingredient.name} /><input aria-label={t('ingredientAmount')} type="number" min="0" step="any" bind:value={ingredient.amount} /><input aria-label={t('ingredientUnit')} list="ingredient-unit-options" placeholder={t('ingredientUnitPlaceholder')} bind:value={ingredient.unit} /><select aria-label={t('ingredientCategory')} bind:value={ingredient.category}>{#each newMeal.recipeData.categories as category}<option value={category}>{recipeCategoryLabel(category)}</option>{/each}</select><button type="button" class="recipe-remove" aria-label={t('deleteMeal')} onclick={() => removeRecipeIngredient(ingredient.id)}><X size={15} /></button></div>
               {/each}
               <datalist id="ingredient-unit-options"><option value="g"></option><option value="kg"></option><option value="ml"></option><option value="l"></option><option value={t('unitTeaspoon')}></option><option value={t('unitTablespoon')}></option><option value={t('unitCup')}></option><option value={t('unitPinch')}></option><option value={t('unitHandful')}></option><option value={t('unitPackage')}></option><option value={t('unitPiece')}></option></datalist>
               <div class="recipe-subheading"><strong>{t('instructions')}</strong><button type="button" class="quiet-button" onclick={addRecipeStep}><Plus size={14} /> {t('addStep')}</button></div>

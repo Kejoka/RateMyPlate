@@ -1,7 +1,6 @@
 {
   "name": "RateMyPlate",
   "short_name": "RateMyPlate",
-  "description": "Log meals and share ratings with private circles.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8f7f2",

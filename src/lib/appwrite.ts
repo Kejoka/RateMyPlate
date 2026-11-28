@@ -870,7 +870,7 @@ export async function listAppwriteCircleMembers(circleId: string) {
       id: membership.$id,
       userId: memberUserId,
       username: profile?.username || normalizeUsername(membership.userName || memberUserId),
-      displayName: profile?.displayName || membership.userName || (invitation ? 'Pending invite' : memberUserId),
+      displayName: profile?.displayName || membership.userName || (invitation ? '' : memberUserId),
       isAdmin: memberUserId === circle.ownerId,
       isPending: !membership.userId && Boolean(invitation)
     };

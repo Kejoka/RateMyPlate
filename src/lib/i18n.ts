@@ -2,6 +2,10 @@ export type Language = 'en' | 'de';
 
 export const translations: Record<Language, Record<string, string>> = {
   en: {
+    pageTitle: 'RateMyPlate — Meal ratings',
+    appDescription: 'Keep track of meals, recipes and ratings with your private groups.',
+    mainNavigation: 'Main navigation',
+    mealDetails: 'Meal details',
     brandSubtitle: 'meal ratings',
     openingTable: 'Opening your table…',
     checkingSession: 'Checking your Appwrite session.',
@@ -19,6 +23,7 @@ export const translations: Record<Language, Record<string, string>> = {
     username: 'Username',
     usernamePlaceholder: 'e.g. maya.chen',
     email: 'Email',
+    emailPlaceholder: 'you@example.com',
     password: 'Password',
     namePlaceholder: 'e.g. Maya Chen',
     passwordPlaceholder: 'At least 8 characters',
@@ -36,6 +41,8 @@ export const translations: Record<Language, Record<string, string>> = {
     circles: 'Groups',
     newCircle: 'New group',
     appwriteConnected: 'Appwrite {environment} connected',
+    environmentProduction: 'production',
+    environmentDevelopment: 'development',
     finishAppwrite: 'Finish Appwrite setup',
     localPreview: 'Local preview mode',
     signOut: 'Sign out',
@@ -43,7 +50,6 @@ export const translations: Record<Language, Record<string, string>> = {
     kitchen: 'RateMyPlate',
     searchTable: 'Search your table',
     notifications: 'Notifications',
-    today: 'Wednesday, November 25, 2026',
     goodEvening: 'Good evening, {name}.',
     overviewDescription: 'A summary of your recent meals and ratings.',
     topRatedHeading: 'Top-rated meals',
@@ -56,7 +62,7 @@ export const translations: Record<Language, Record<string, string>> = {
     browseAllMeals: 'Browse all meals',
     mealsLogged: 'Meals logged',
     thisYear: 'this year',
-    tableAverage: 'Critic average',
+    tableAverage: 'Group average',
     acrossRatings: 'across {count} ratings',
     dinnersTogether: 'Meal groups',
     activeCircles: 'active groups',
@@ -65,9 +71,9 @@ export const translations: Record<Language, Record<string, string>> = {
     viewArchive: 'View archive',
     mostLoved: 'Highest rated',
     topOfTable: 'Top meals',
-    tableRatings: '{count} food critics',
+    tableRatings: '{count} ratings',
     rateValue: 'Rate {value} stars',
-    tableOnRoll: 'Ratings in progress',
+    tableOnRoll: 'New ratings are coming in',
     bringSomeone: 'Invite someone to a group',
     inviteCopy: 'Create a private group and invite people by username.',
     inviteCircle: 'Invite your group',
@@ -120,7 +126,7 @@ export const translations: Record<Language, Record<string, string>> = {
     howDidItLand: 'How did it land?',
     saveStarRating: 'Save {count} star rating',
     chooseRating: 'Choose a rating',
-    ratedByTable: 'Rated by food critics',
+    ratedByTable: 'Rated by group members',
     people: '{count} people',
     you: 'you',
     deleteMeal: 'Delete meal',
@@ -130,6 +136,7 @@ export const translations: Record<Language, Record<string, string>> = {
     whatDidYouMake: 'What did you make?',
     newMemoryCopy: 'Add details about the meal.',
     dishName: 'Dish name',
+    dishNamePlaceholder: 'e.g. lemon ricotta pasta',
     whenWasIt: 'When was it?',
     whichCircle: 'Which group?',
     optional: 'optional',
@@ -147,13 +154,22 @@ export const translations: Record<Language, Record<string, string>> = {
     ingredientUnit: 'Ingredient unit',
     ingredientUnitPlaceholder: 'g, ml, pinch, handful, package…',
     unitTeaspoon: 'tsp',
+    unitTeaspoonPlural: 'tsp',
     unitTablespoon: 'tbsp',
+    unitTablespoonPlural: 'tbsp',
     unitCup: 'cup',
+    unitCupPlural: 'cups',
     unitPinch: 'pinch',
+    unitPinchPlural: 'pinches',
     unitHandful: 'handful',
+    unitHandfulPlural: 'handfuls',
     unitPackage: 'package',
+    unitPackagePlural: 'packages',
     unitPiece: 'piece',
+    unitPiecePlural: 'pieces',
     ingredientCategory: 'Ingredient category',
+    otherCategory: 'Other',
+    removeCategory: 'Remove {category}',
     instructions: 'Instructions',
     addStep: 'Add step',
     describeStep: 'Describe this step…',
@@ -185,6 +201,22 @@ export const translations: Record<Language, Record<string, string>> = {
     circleDeleted: 'Group deleted',
     groupCleanupFailed: 'The group was deleted, but its invitation team could not be removed',
     cannotDeleteCircle: 'Could not delete that group',
+    cannotManageGroup: 'You can only manage groups you own.',
+    groupAdminRequired: 'Only the group admin can do that.',
+    groupMemberNotFound: 'That group member could not be found.',
+    groupAdminProtected: 'The group admin cannot be removed.',
+    usernameNotFound: 'No RateMyPlate user was found for @{username}.',
+    alreadyGroupMember: 'You are already a member of this group.',
+    groupSharingUnavailable: 'Group sharing is not configured yet.',
+    inviteNotificationsUnavailable: 'Group invitations are not configured yet.',
+    halfStarSyncUnavailable: 'Half-star ratings cannot sync until the optional valueHalf column is added to the Appwrite Ratings table.',
+    accessDenied: 'You do not have permission to do that.',
+    appwriteSetupFailed: 'Appwrite is not fully configured. Please contact the administrator.',
+    appwriteFailure: 'The Appwrite request failed. Please try again.',
+    sessionStartFailed: 'We could not start your session. Please try again.',
+    authFailed: 'That email or password did not work.',
+    signInRequired: 'Sign in to continue.',
+    unexpectedError: 'Something went wrong. Please try again.',
     noNotifications: 'No new notifications',
     mealAdded: 'Meal added to the table',
     mealDeleted: 'Meal removed from the table',
@@ -199,20 +231,22 @@ export const translations: Record<Language, Record<string, string>> = {
     changeProfilePhoto: 'Change profile photo',
     profileUpdated: 'Profile photo updated',
     profileUpdateFailed: 'Could not update profile photo',
+    imageRequired: 'Choose an image first.',
+    imageProcessingFailed: 'The image could not be processed. Please choose another image.',
     inviteEmail: 'Invite by email',
     inviteUsername: 'Invite by username',
-    inviteSent: 'Invitation sent'
-    ,groupMembers: 'Group members'
-    ,groupAdmin: 'Admin'
-    ,removeMember: 'Remove'
-    ,memberRemoved: 'Member removed'
-    ,memberRemoveFailed: 'Could not remove this member'
-    ,membersLoadFailed: 'Could not load group members'
-    ,membersLoading: 'No members found'
-    ,invitePending: 'invite pending'
-    ,noUsernameMatches: 'No matching usernames found'
-    ,profilesUnavailable: 'User suggestions are unavailable. Check profile table permissions.'
-    ,reviewOptional: 'Review (optional)',
+    inviteSent: 'Invitation sent',
+    groupMembers: 'Group members',
+    groupAdmin: 'Admin',
+    removeMember: 'Remove',
+    memberRemoved: 'Member removed',
+    memberRemoveFailed: 'Could not remove this member',
+    membersLoadFailed: 'Could not load group members',
+    membersLoading: 'No members found',
+    invitePending: 'invite pending',
+    noUsernameMatches: 'No matching usernames found',
+    profilesUnavailable: 'User suggestions are unavailable. Check profile table permissions.',
+    reviewOptional: 'Review (optional)',
     reviewPlaceholder: 'What did you think of this dish?',
     markAllRead: 'Mark all read',
     groupInviteNotification: '{sender} invited you to {group}',
@@ -221,13 +255,17 @@ export const translations: Record<Language, Record<string, string>> = {
     removeSavedMeal: 'Remove from saved meals'
   },
   de: {
+    pageTitle: 'RateMyPlate — Gerichte bewerten',
+    appDescription: 'Verwalte Gerichte, Rezepte und Bewertungen in deinen privaten Gruppen.',
+    mainNavigation: 'Hauptnavigation',
+    mealDetails: 'Details zum Gericht',
     brandSubtitle: 'Gerichte bewerten',
     openingTable: 'Dein Tisch wird geöffnet…',
     checkingSession: 'Appwrite-Sitzung wird geprüft.',
     placeForGoodStuff: 'ESSENSPROTOKOLL',
     keepGoodStuff: 'Gerichte und',
     onTheTable: 'Bewertungen verwalten.',
-    authVisualCopy: 'Speichere Gerichte, sammle Bewertungen und verwalte private Dinner.',
+    authVisualCopy: 'Speichere Gerichte, sammle Bewertungen und organisiere private Essensrunden.',
     privateToTable: 'Privat für deinen Tisch',
     welcomeBack: 'Anmelden',
     comeOnIn: 'Willkommen zurück',
@@ -238,6 +276,7 @@ export const translations: Record<Language, Record<string, string>> = {
     username: 'Benutzername',
     usernamePlaceholder: 'z. B. maya.chen',
     email: 'E-Mail',
+    emailPlaceholder: 'du@beispiel.de',
     password: 'Passwort',
     namePlaceholder: 'z. B. Maya Chen',
     passwordPlaceholder: 'Mindestens 8 Zeichen',
@@ -255,6 +294,8 @@ export const translations: Record<Language, Record<string, string>> = {
     circles: 'Gruppen',
     newCircle: 'Neue Gruppe',
     appwriteConnected: 'Appwrite-{environment} verbunden',
+    environmentProduction: 'Produktion',
+    environmentDevelopment: 'Entwicklung',
     finishAppwrite: 'Appwrite-Einrichtung abschließen',
     localPreview: 'Lokale Vorschau',
     signOut: 'Abmelden',
@@ -262,12 +303,11 @@ export const translations: Record<Language, Record<string, string>> = {
     kitchen: 'RateMyPlate',
     searchTable: 'Tisch durchsuchen',
     notifications: 'Benachrichtigungen',
-    today: 'Mittwoch, 25. November 2026',
     goodEvening: 'Guten Abend, {name}.',
     overviewDescription: 'Eine Übersicht deiner letzten Gerichte und Bewertungen.',
     topRatedHeading: 'Am besten bewertete Gerichte',
     topRatedDescription: 'Gerichte sortiert nach ihrer Durchschnittsbewertung.',
-    mealsHeading: 'Dein Gerichtarchiv',
+    mealsHeading: 'Dein Essensarchiv',
     mealsDescription: 'Stöbere durch gespeicherte Gerichte, Rezepte und Bewertungen.',
     logMeal: 'Gericht eintragen',
     yourTableSeason: 'Deine Aktivität',
@@ -275,7 +315,7 @@ export const translations: Record<Language, Record<string, string>> = {
     browseAllMeals: 'Alle Gerichte ansehen',
     mealsLogged: 'Gerichte eingetragen',
     thisYear: 'dieses Jahr',
-    tableAverage: 'Kritikerdurchschnitt',
+    tableAverage: 'Durchschnittsbewertung',
     acrossRatings: 'aus {count} Bewertungen',
     dinnersTogether: 'Essensgruppen',
     activeCircles: 'aktive Gruppen',
@@ -284,9 +324,9 @@ export const translations: Record<Language, Record<string, string>> = {
     viewArchive: 'Archiv ansehen',
     mostLoved: 'Am besten bewertet',
     topOfTable: 'Top-Gerichte',
-    tableRatings: '{count} Kritikerbewertungen',
+    tableRatings: '{count} Bewertungen',
     rateValue: '{value} Sterne bewerten',
-    tableOnRoll: 'Bewertungen werden gesammelt',
+    tableOnRoll: 'Neue Bewertungen treffen ein',
     bringSomeone: 'Jemanden in eine Gruppe einladen',
     inviteCopy: 'Erstelle eine private Gruppe und lade Personen per Benutzernamen ein.',
     inviteCircle: 'Gruppe einladen',
@@ -304,7 +344,7 @@ export const translations: Record<Language, Record<string, string>> = {
     meal: '{count} Gericht',
     noMeals: 'Keine Gerichte gefunden',
     noMealsCopy: 'Versuche eine andere Suche oder trage etwas Neues ein.',
-    allTimeFavorites: 'Favoriten aller Zeiten',
+    allTimeFavorites: 'Beliebteste Gerichte',
     rankedByAverage: 'Sortiert nach dem Durchschnitt deines Tisches',
     averageAcrossMeals: 'Durchschnitt aus {count} Gerichten',
     loggedDate: 'eingetragen am {date}',
@@ -328,7 +368,7 @@ export const translations: Record<Language, Record<string, string>> = {
     dietaryKosher: 'Koscher',
     dietaryKeto: 'Keto',
     dietaryLowCarb: 'Kohlenhydratarm',
-    dietaryInfo: 'Die Tags werden von dir angegeben und sind keine Allergen- oder Ernährungsberatung.',
+    dietaryInfo: 'Die Merkmale stammen von dir und ersetzen keine Allergen- oder Ernährungsberatung.',
     editMeal: 'Gericht bearbeiten',
     saveMealChanges: 'Änderungen speichern',
     mealUpdated: 'Gericht aktualisiert',
@@ -339,7 +379,7 @@ export const translations: Record<Language, Record<string, string>> = {
     howDidItLand: 'Wie kam es an?',
     saveStarRating: '{count}-Sterne-Bewertung speichern',
     chooseRating: 'Bewertung auswählen',
-    ratedByTable: 'Bewertet von Food-Kritikern',
+    ratedByTable: 'Von Gruppenmitgliedern bewertet',
     people: '{count} Personen',
     you: 'du',
     deleteMeal: 'Gericht löschen',
@@ -349,6 +389,7 @@ export const translations: Record<Language, Record<string, string>> = {
     whatDidYouMake: 'Was hast du gekocht?',
     newMemoryCopy: 'Ergänze Details zum Gericht.',
     dishName: 'Name des Gerichts',
+    dishNamePlaceholder: 'z. B. Zitronen-Ricotta-Pasta',
     whenWasIt: 'Wann war es?',
     whichCircle: 'Welche Gruppe?',
     optional: 'optional',
@@ -366,23 +407,32 @@ export const translations: Record<Language, Record<string, string>> = {
     ingredientUnit: 'Einheit',
     ingredientUnitPlaceholder: 'g, ml, Prise, Handvoll, Packung …',
     unitTeaspoon: 'TL',
+    unitTeaspoonPlural: 'TL',
     unitTablespoon: 'EL',
+    unitTablespoonPlural: 'EL',
     unitCup: 'Tasse',
+    unitCupPlural: 'Tassen',
     unitPinch: 'Prise',
+    unitPinchPlural: 'Prisen',
     unitHandful: 'Handvoll',
+    unitHandfulPlural: 'Handvoll',
     unitPackage: 'Packung',
+    unitPackagePlural: 'Packungen',
     unitPiece: 'Stück',
+    unitPiecePlural: 'Stück',
     ingredientCategory: 'Zutatenkategorie',
+    otherCategory: 'Sonstiges',
+    removeCategory: '{category} entfernen',
     instructions: 'Zubereitung',
     addStep: 'Schritt hinzufügen',
     describeStep: 'Schritt beschreiben …',
     insertLinkedAmount: 'Verknüpfte Menge einfügen:',
     servings: 'Portionen',
     metric: 'Metrisch',
-    imperial: 'Imperial',
+    imperial: 'US-Maße',
     openRecipeSource: 'Rezeptquelle öffnen',
     method: 'Zubereitung',
-    notePlaceholder: 'Was machte dieses Dinner erinnerungswürdig?',
+    notePlaceholder: 'Was hat dieses Essen besonders gemacht?',
     addPhoto: 'Foto hinzufügen',
     swapPhoto: 'Tischfoto ersetzen',
     fileHelp: 'Bilder bis 10 MB · als optimiertes JPG gespeichert',
@@ -404,6 +454,22 @@ export const translations: Record<Language, Record<string, string>> = {
     circleDeleted: 'Gruppe gelöscht',
     groupCleanupFailed: 'Die Gruppe wurde gelöscht, aber das Einladungsteam konnte nicht entfernt werden',
     cannotDeleteCircle: 'Gruppe konnte nicht gelöscht werden',
+    cannotManageGroup: 'Du kannst nur Gruppen verwalten, die dir gehören.',
+    groupAdminRequired: 'Nur der Gruppenadmin kann das tun.',
+    groupMemberNotFound: 'Dieses Gruppenmitglied wurde nicht gefunden.',
+    groupAdminProtected: 'Der Gruppenadmin kann nicht entfernt werden.',
+    usernameNotFound: 'Es wurde kein RateMyPlate-Konto für @{username} gefunden.',
+    alreadyGroupMember: 'Du bist bereits Mitglied dieser Gruppe.',
+    groupSharingUnavailable: 'Die Gruppenfreigabe ist nicht eingerichtet.',
+    inviteNotificationsUnavailable: 'Gruppeneinladungen sind nicht eingerichtet.',
+    halfStarSyncUnavailable: 'Halbe Sterne können erst synchronisiert werden, wenn die optionale Spalte „valueHalf“ zur Appwrite-Bewertungstabelle hinzugefügt wurde.',
+    accessDenied: 'Du hast dafür keine Berechtigung.',
+    appwriteSetupFailed: 'Appwrite ist nicht vollständig eingerichtet. Bitte wende dich an den Administrator.',
+    appwriteFailure: 'Die Appwrite-Anfrage ist fehlgeschlagen. Bitte versuche es erneut.',
+    sessionStartFailed: 'Deine Sitzung konnte nicht gestartet werden. Bitte versuche es erneut.',
+    authFailed: 'E-Mail-Adresse oder Passwort ist nicht korrekt.',
+    signInRequired: 'Melde dich an, um fortzufahren.',
+    unexpectedError: 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.',
     noNotifications: 'Keine neuen Benachrichtigungen',
     mealAdded: 'Gericht zum Tisch hinzugefügt',
     mealDeleted: 'Gericht vom Tisch entfernt',
@@ -418,20 +484,22 @@ export const translations: Record<Language, Record<string, string>> = {
     changeProfilePhoto: 'Profilfoto ändern',
     profileUpdated: 'Profilfoto aktualisiert',
     profileUpdateFailed: 'Profilfoto konnte nicht aktualisiert werden',
+    imageRequired: 'Wähle zuerst ein Bild aus.',
+    imageProcessingFailed: 'Das Bild konnte nicht verarbeitet werden. Bitte wähle ein anderes Bild aus.',
     inviteEmail: 'Per E-Mail einladen',
     inviteUsername: 'Per Benutzername einladen',
-    inviteSent: 'Einladung gesendet'
-    ,groupMembers: 'Gruppenmitglieder'
-    ,groupAdmin: 'Admin'
-    ,removeMember: 'Entfernen'
-    ,memberRemoved: 'Mitglied entfernt'
-    ,memberRemoveFailed: 'Mitglied konnte nicht entfernt werden'
-    ,membersLoadFailed: 'Gruppenmitglieder konnten nicht geladen werden'
-    ,membersLoading: 'Keine Mitglieder gefunden'
-    ,invitePending: 'Einladung ausstehend'
-    ,noUsernameMatches: 'Keine passenden Benutzernamen gefunden'
-    ,profilesUnavailable: 'Benutzervorschläge nicht verfügbar. Profil-Tabellenberechtigungen prüfen.'
-    ,reviewOptional: 'Bewertungstext (optional)',
+    inviteSent: 'Einladung gesendet',
+    groupMembers: 'Gruppenmitglieder',
+    groupAdmin: 'Gruppenadmin',
+    removeMember: 'Entfernen',
+    memberRemoved: 'Mitglied entfernt',
+    memberRemoveFailed: 'Mitglied konnte nicht entfernt werden',
+    membersLoadFailed: 'Gruppenmitglieder konnten nicht geladen werden',
+    membersLoading: 'Keine Mitglieder gefunden',
+    invitePending: 'Einladung ausstehend',
+    noUsernameMatches: 'Keine passenden Benutzernamen gefunden',
+    profilesUnavailable: 'Benutzervorschläge nicht verfügbar. Prüfe die Berechtigungen der Profiltabelle.',
+    reviewOptional: 'Bewertungstext (optional)',
     reviewPlaceholder: 'Wie fandest du dieses Gericht?',
     markAllRead: 'Alle gelesen',
     groupInviteNotification: '{sender} hat dich in „{group}“ eingeladen',
@@ -444,4 +512,51 @@ export const translations: Record<Language, Record<string, string>> = {
 export function translate(language: Language, key: string, variables: Record<string, string | number> = {}) {
   const template = translations[language][key] ?? translations.en[key] ?? key;
   return template.replace(/\{(\w+)\}/g, (_, variable: string) => String(variables[variable] ?? `{${variable}}`));
+}
+
+const ingredientUnitKeys: Record<string, string> = {
+  tsp: 'unitTeaspoon', teaspoon: 'unitTeaspoon', teaspoons: 'unitTeaspoon', tl: 'unitTeaspoon', teelöffel: 'unitTeaspoon',
+  tbsp: 'unitTablespoon', tablespoon: 'unitTablespoon', tablespoons: 'unitTablespoon', el: 'unitTablespoon', esslöffel: 'unitTablespoon',
+  cup: 'unitCup', cups: 'unitCup', tasse: 'unitCup', tassen: 'unitCup',
+  pinch: 'unitPinch', pinches: 'unitPinch', prise: 'unitPinch', prisen: 'unitPinch',
+  handful: 'unitHandful', handfuls: 'unitHandful', handvoll: 'unitHandful',
+  package: 'unitPackage', packages: 'unitPackage', packung: 'unitPackage', packungen: 'unitPackage',
+  piece: 'unitPiece', pieces: 'unitPiece', stück: 'unitPiece', stuck: 'unitPiece'
+};
+
+export function translateIngredientUnit(language: Language, unit: string, amount: number) {
+  const key = ingredientUnitKeys[unit.trim().toLocaleLowerCase()];
+  if (!key) return unit;
+  const plural = Math.abs(amount - 1) > Number.EPSILON;
+  return translate(language, plural ? `${key}Plural` : key);
+}
+
+export function translateErrorMessage(language: Language, message: string) {
+  const text = message.trim();
+  if (!text) return null;
+  if (Object.values(translations[language]).includes(text)) return text;
+
+  const usernameMatch = text.match(/no RateMyPlate user was found for @([\w.-]+)/i);
+  if (usernameMatch) return translate(language, 'usernameNotFound', { username: usernameMatch[1] });
+  if (/valueHalf/i.test(text)) return translate(language, 'halfStarSyncUnavailable');
+  if (/you can only edit your own meals/i.test(text)) return translate(language, 'cannotEditMeal');
+  if (/you can only delete your own meals/i.test(text)) return translate(language, 'cannotDeleteMeal');
+  if (/already a member|you are already a member/i.test(text)) return translate(language, 'alreadyGroupMember');
+  if (/group admin cannot be removed/i.test(text)) return translate(language, 'groupAdminProtected');
+  if (/group member could not be found/i.test(text)) return translate(language, 'groupMemberNotFound');
+  if (/only (the )?group (admin|owner)|only the group admin/i.test(text)) return translate(language, 'groupAdminRequired');
+  if (/you can only manage groups you own|you can only delete groups you own/i.test(text)) return translate(language, 'cannotManageGroup');
+  if (/group invites are not configured|group invite notifications are not configured/i.test(text)) return translate(language, 'inviteNotificationsUnavailable');
+  if (/group sharing is not configured|groups are not configured/i.test(text)) return translate(language, 'groupSharingUnavailable');
+  if (/profile(s)?.*(not configured|not found)|user suggestions are unavailable/i.test(text)) return translate(language, 'profilesUnavailable');
+  if (/choose an image first|image id is required/i.test(text)) return translate(language, 'imageRequired');
+  if (/image not found|could not be decoded|could not be converted|could not be prepared for upload|this file is not an image/i.test(text)) return translate(language, 'imageProcessingFailed');
+  if (/you cannot change this notification|group team could not be verified|do not have access/i.test(text)) return translate(language, 'accessDenied');
+  if (/only the group admin can create its group record|only the group admin can unassign its meals/i.test(text)) return translate(language, 'groupAdminRequired');
+  if (/invalid (email|credentials|password)|email or password did not work|authentication failed/i.test(text)) return translate(language, 'authFailed');
+  if (/sign in to continue|unauthenticated/i.test(text)) return translate(language, 'signInRequired');
+  if (/do not have access|not authorized|permission denied|cross-origin request rejected/i.test(text)) return translate(language, 'accessDenied');
+  if (/table.+(not found|does not exist)|requested id.+could not be found|not fully configured|not configured/i.test(text)) return translate(language, 'appwriteSetupFailed');
+  if (/failed to fetch|network error|request failed|unable to load|could not load/i.test(text)) return translate(language, 'appwriteFailure');
+  return null;
 }

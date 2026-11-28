@@ -282,7 +282,7 @@ async function profilesForMemberships(apiKey: string, memberships: Membership[],
       id: membership.$id,
       userId,
       username,
-      displayName: profile?.displayName || membership.userName || (invite ? 'Pending invite' : userId),
+      displayName: profile?.displayName || membership.userName || (invite ? '' : userId),
       isAdmin: Boolean(membership.roles?.includes('owner')),
       isPending: !membership.userId && Boolean(invite)
     };
