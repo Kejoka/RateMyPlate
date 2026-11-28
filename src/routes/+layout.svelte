@@ -9,7 +9,9 @@
       });
       return;
     }
-    if (import.meta.env.PROD) navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+    if (import.meta.env.PROD) {
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => undefined);
+    }
   });
 </script>
 
