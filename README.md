@@ -38,37 +38,37 @@ Run `npm run check` for Svelte’s type and accessibility checks. Run `npm run b
 - Meals table: `6b070649001b6534fcfc`
 - Ratings table: `6b07077f001cdb2bff90`
 - Circles table: `6b070eb8001c0f69789e`
+- Profiles table: `6b081324001711e0c487`
+- Notifications table: `6b0813c8000f8f3ce7fa`
 - Photo bucket: `6b0708700022d260cfa5`
 - Email/password authentication: enabled
 
-Both spaces have the same schema and authenticated-user create/read/update/delete permissions. Their users, meals, ratings, and photos are isolated because they belong to separate Appwrite projects.
+The two spaces have separate users, meals, ratings, profiles, notifications, and photos because they belong to separate Appwrite projects.
 
-**Important ownership setup:** the app checks `ownerId` before editing or deleting a meal, and writes owner-only row permissions (plus group read permission) to new meals and their photos. On login, it migrates the current user's existing meal rows and photo permissions. The development `Meals` and `Circles` tables now have Row Security enabled and table-level create-only access; the two existing development meals belong to the test account and remain accessible after migration. Production security has not been changed in this setup. Before relying on ownership or group privacy in production, migrate every existing meal owner's rows and photos, enable Row Security on `Meals` and `Circles`, and remove table-wide `read`, `update`, and `delete` grants (keep authenticated `create`). Until then, a user can bypass the UI and call Appwrite directly. The app does not claim groups are private based only on client-side filtering.
+Production database operations go through the same-origin `/api/private-data` Worker endpoint. It verifies the signed-in user's Appwrite JWT and checks the meal owner, group membership, group admin, or notification recipient before using the server-only `APPWRITE_API_KEY`. The key must be a Cloudflare **runtime secret**, never a `VITE_` or build variable. Use only these API key scopes: `rows.read`, `rows.write`, `teams.read`, `teams.write`, `files.read`, and `files.write`.
 
-## Cloudflare Pages
+For the production Appwrite project, enable Row Security on `Meals`, `Ratings`, `Circles`, `Profiles`, and `Notifications`, then remove their table-level permissions. The Worker uses the API key for all table writes, so it does not need table-level user grants. Row permissions still protect direct Appwrite requests: meal and rating owners plus their group team can read; only owners can update/delete; profile rows are owner-only (username suggestions run through the authenticated Worker endpoint); notifications are readable by the recipient and sender; groups are readable by their members and manageable by their admin. Enable File Security on the photo bucket and remove bucket-wide access so each image follows its owner/group file permissions.
 
-Create a Pages project from this repository with:
+## Cloudflare Workers
 
-- Build command: `npm run build`
-- Build output directory: `.svelte-kit/cloudflare`
-- Root directory: the repository root
-
-In Pages → Settings → Environment variables, add these variables for the **Production** environment using the values in `.env.production.example`:
+The `ratemyplate` Worker is linked to this repository and deploys the `prod` branch. Configure these build variables in the Cloudflare build settings using `.env.production.example`:
 
 ```text
 VITE_APP_ENV=production
-VITE_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+VITE_APPWRITE_ENDPOINT=https://fra.cloud.appwrite.io/v1
 VITE_APPWRITE_PROJECT_ID=6b07061f0034777d305d
 VITE_APPWRITE_DATABASE_ID=6b07063d0036acb4f8fc
 VITE_APPWRITE_MEALS_TABLE_ID=6b070649001b6534fcfc
 VITE_APPWRITE_RATINGS_TABLE_ID=6b07077f001cdb2bff90
 VITE_APPWRITE_CIRCLES_TABLE_ID=6b070eb8001c0f69789e
+VITE_APPWRITE_PROFILES_TABLE_ID=6b081324001711e0c487
+VITE_APPWRITE_NOTIFICATIONS_TABLE_ID=6b0813c8000f8f3ce7fa
 VITE_APPWRITE_STORAGE_BUCKET_ID=6b0708700022d260cfa5
 ```
 
-Set the variables for Preview explicitly as well. With only two data spaces, the safe choice is to point Preview at the development project by copying `.env.development.example`; this keeps previews away from production but means preview users share development data. Do not deploy a Preview build without Appwrite variables.
+In the Worker runtime settings, add `APPWRITE_API_KEY` as a **secret**, using a production Appwrite key with only the scopes listed above. Do not put it in build variables or `.env.production.example`. The project hostname `ratemyplate.kabunzki.workers.dev` must be registered as a Web platform in Appwrite.
 
-After the Pages hostname exists, add it as a **Web** platform in the production Appwrite project under Apps. Add both the `*.pages.dev` hostname and any custom domain that will serve the app. Keep `127.0.0.1` only on the local Appwrite project.
+Production and local builds should use their matching project variables from `.env.production.example` and `.env.development.local`. Keep the local Appwrite project separate from the production Worker.
 
 ## Appwrite schema
 

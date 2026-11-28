@@ -32,6 +32,26 @@ export const account = new Account(client);
 const tablesDB = new TablesDB(client);
 const storage = new Storage(client);
 const teams = new Teams(client);
+const usePrivateServerData = appEnvironment === 'production';
+
+async function privateData<T>(operation: string, args: Record<string, unknown> = {}, file?: File) {
+  const session = await account.createJWT();
+  const headers = new Headers({ Authorization: `Bearer ${session.jwt}` });
+  let body: BodyInit;
+  if (file) {
+    const form = new FormData();
+    form.set('payload', JSON.stringify({ operation, args }));
+    form.set('file', file, file.name || 'upload');
+    body = form;
+  } else {
+    headers.set('Content-Type', 'application/json');
+    body = JSON.stringify({ operation, args });
+  }
+  const response = await fetch('/api/private-data', { method: 'POST', headers, body });
+  const payload = await response.json().catch(() => ({})) as { result?: T; error?: string };
+  if (!response.ok) throw new Error(payload.error || `Private Appwrite request failed (${response.status}).`);
+  return payload.result as T;
+}
 
 function mealPermissions(ownerId: string, groupTeamId?: string) {
   return [
@@ -167,6 +187,15 @@ export async function ensureAppwriteProfile(userId: string, displayName: string,
     if (import.meta.env.DEV) console.warn('Profile setup is missing an Appwrite profile table configuration.');
     return null;
   }
+  if (usePrivateServerData) {
+    try {
+      const row = await privateData<ProfileRow>('ensure-profile', { displayName, requestedUsername, email });
+      return mapProfile(row);
+    } catch (error) {
+      console.error('Unable to create the signed-in user profile row.', error);
+      throw error;
+    }
+  }
   const fallback = usernameFromIdentity(displayName, email, userId);
   const requested = normalizeUsername(requestedUsername ?? '');
   try {
@@ -212,6 +241,10 @@ export async function findAppwriteProfile(username: string) {
   if (!profilesConfigured || !databaseId || !profilesTableId) return null;
   const normalized = normalizeUsername(username);
   if (!normalized) return null;
+  if (usePrivateServerData) {
+    const row = await privateData<ProfileRow | null>('find-profile', { username: normalized });
+    return row ? mapProfile(row) : null;
+  }
   const response = await tablesDB.listRows<ProfileRow>({
     databaseId,
     tableId: profilesTableId,
@@ -224,6 +257,10 @@ export async function searchAppwriteProfiles(username: string, limit = 8) {
   if (!profilesConfigured || !databaseId || !profilesTableId) return [];
   const normalized = normalizeUsername(username);
   if (!normalized) return [];
+  if (usePrivateServerData) {
+    const rows = await privateData<ProfileRow[]>('search-profiles', { username: normalized, limit });
+    return rows.map(mapProfile).sort((a, b) => a.username.localeCompare(b.username));
+  }
   try {
     const response = await tablesDB.listRows<ProfileRow>({
       databaseId,
@@ -271,6 +308,10 @@ function mapNotification(row: NotificationRow): AppNotification {
 
 export async function listAppwriteNotifications(userId: string) {
   if (!notificationsConfigured || !databaseId || !notificationsTableId) return [];
+  if (usePrivateServerData) {
+    const rows = await privateData<NotificationRow[]>('list-notifications');
+    return rows.map(mapNotification);
+  }
   const response = await tablesDB.listRows<NotificationRow>({
     databaseId,
     tableId: notificationsTableId,
@@ -281,6 +322,9 @@ export async function listAppwriteNotifications(userId: string) {
 
 export async function markAppwriteNotificationRead(notificationId: string, userId: string) {
   if (!notificationsConfigured || !databaseId || !notificationsTableId) return null;
+  if (usePrivateServerData) {
+    return privateData<NotificationRow | null>('mark-notification-read', { notificationId });
+  }
   return tablesDB.updateRow<NotificationRow>({
     databaseId,
     tableId: notificationsTableId,
@@ -328,6 +372,7 @@ export async function logoutCurrentUser() {
 
 export async function uploadProfileImage(file: File, ownerId: string) {
   if (!bucketId) return null;
+  if (usePrivateServerData) return privateData<Models.File>('upload-profile-image', {}, file);
   return storage.createFile(bucketId, ID.unique(), file, [
     Appwrite.Permission.read(Appwrite.Role.user(ownerId)),
     Appwrite.Permission.update(Appwrite.Role.user(ownerId)),
@@ -427,6 +472,14 @@ function mapMeal(row: MealRow): Meal {
 
 export async function listAppwriteMeals(ownerId: string, accessibleGroupNames: string[]) {
   if (!dataConfigured || !databaseId || !mealsTableId) return [];
+  if (usePrivateServerData) {
+    const rows = await privateData<MealRow[]>('list-meals');
+    const meals = rows.map(mapMeal);
+    return Promise.all(meals.map(async (meal) => ({
+      ...meal,
+      ratings: await listAppwriteRatings(meal.id)
+    })));
+  }
   const response = await tablesDB.listRows<MealRow>({
     databaseId,
     tableId: mealsTableId,
@@ -446,6 +499,10 @@ export async function listAppwriteMeals(ownerId: string, accessibleGroupNames: s
 
 export async function migrateOwnedMealPermissions(ownerId: string) {
   if (!dataConfigured || !databaseId || !mealsTableId) return;
+  if (usePrivateServerData) {
+    await privateData<null>('migrate-meal-permissions');
+    return;
+  }
   const memberships = await teams.list();
   const teamByName = new Map(memberships.teams.map((team) => [team.name, team.$id]));
   let offset = 0;
@@ -480,6 +537,10 @@ export async function migrateOwnedMealPermissions(ownerId: string) {
 
 export async function listAppwriteRatings(mealId: string) {
   if (!dataConfigured || !databaseId || !ratingsTableId) return [];
+  if (usePrivateServerData) {
+    const rows = await privateData<RatingRow[]>('list-ratings', { mealId });
+    return rows.map(mapRating);
+  }
   const response = await tablesDB.listRows<RatingRow>({
     databaseId,
     tableId: ratingsTableId,
@@ -490,6 +551,9 @@ export async function listAppwriteRatings(mealId: string) {
 
 export async function createAppwriteMeal(meal: Meal, ownerId: string, imageFile?: File, groupTeamId?: string) {
   if (!dataConfigured || !databaseId || !mealsTableId) return null;
+  if (usePrivateServerData) {
+    return privateData<MealRow>('create-meal', { meal, groupTeamId }, imageFile);
+  }
   const teamsForUser = meal.circle && !groupTeamId ? await teams.list() : null;
   const groupTeam = teamsForUser?.teams.find((team) => team.name === meal.circle);
   const resolvedTeamId = groupTeamId ?? groupTeam?.$id;
@@ -538,6 +602,9 @@ export async function updateAppwriteMeal(
   groupTeamId?: string
 ) {
   if (!dataConfigured || !databaseId || !mealsTableId || mealId.startsWith('local-')) return null;
+  if (usePrivateServerData) {
+    return privateData<MealRow>('update-meal', { mealId, data, groupTeamId }, imageFile);
+  }
   const existing = await tablesDB.getRow<MealRow>({ databaseId, tableId: mealsTableId, rowId: mealId });
   if (existing.ownerId !== ownerId) throw new Error('You can only edit your own meals.');
   const circle = data.circle ?? existing.circle;
@@ -588,6 +655,7 @@ export async function updateAppwriteMeal(
 
 export async function deleteAppwriteMeal(mealId: string, ownerId: string) {
   if (!dataConfigured || !databaseId || !mealsTableId || mealId.startsWith('local-')) return null;
+  if (usePrivateServerData) return privateData<{ success: boolean }>('delete-meal', { mealId });
   const meal = await tablesDB.getRow<MealRow>({ databaseId, tableId: mealsTableId, rowId: mealId });
   if (meal.ownerId !== ownerId) throw new Error('You can only delete your own meals.');
   const result = await tablesDB.deleteRow({ databaseId, tableId: mealsTableId, rowId: mealId });
@@ -597,6 +665,10 @@ export async function deleteAppwriteMeal(mealId: string, ownerId: string) {
 
 export async function unassignAppwriteMealsFromGroup(groupName: string, ownerId: string) {
   if (!dataConfigured || !databaseId || !mealsTableId) return;
+  if (usePrivateServerData) {
+    await privateData<null>('unassign-meals', { groupName });
+    return;
+  }
   while (true) {
     const response = await tablesDB.listRows<MealRow>({
       databaseId,
@@ -621,6 +693,9 @@ export async function unassignAppwriteMealsFromGroup(groupName: string, ownerId:
 
 export async function upsertAppwriteRating(mealId: string, rating: Rating, ownerId: string, groupTeamId?: string) {
   if (!dataConfigured || !databaseId || !ratingsTableId) return null;
+  if (usePrivateServerData) {
+    return privateData<RatingRow>('upsert-rating', { mealId, rating, groupTeamId });
+  }
 
   const existing = await tablesDB.listRows<RatingRow>({
     databaseId,
@@ -683,6 +758,18 @@ export async function upsertAppwriteRating(mealId: string, rating: Rating, owner
 
 export async function listAppwriteCircles(ownerId: string) {
   if (!circlesConfigured || !databaseId || !circlesTableId) return [];
+  if (usePrivateServerData) {
+    const rows = await privateData<CircleRow[]>('list-circles');
+    return rows.map((row): Circle => ({
+      id: row.$id,
+      name: row.name,
+      color: row.color || '#48a868',
+      ownerId: row.ownerId,
+      privacy: 'invited',
+      invitedEmails: [],
+      memberIds: row.memberIds ?? [row.ownerId]
+    }));
+  }
   let teamIds = new Set<string>();
   try {
     const memberships = await teams.list();
@@ -713,6 +800,9 @@ export async function createAppwriteCircle(circle: Pick<Circle, 'name' | 'color'
   if (!circlesConfigured || !databaseId || !circlesTableId) return null;
   const team = await teams.create({ teamId: ID.unique(), name: circle.name, roles: ['owner'] });
   try {
+    if (usePrivateServerData) {
+      return await privateData<CircleRow>('create-circle', { circleId: team.$id, circle });
+    }
     return await tablesDB.createRow<CircleRow>({
       databaseId,
       tableId: circlesTableId,
@@ -732,6 +822,9 @@ export async function createAppwriteCircle(circle: Pick<Circle, 'name' | 'color'
 
 export async function updateAppwriteCircle(circleId: string, ownerId: string, data: Pick<Circle, 'name' | 'color'>) {
   if (!circlesConfigured || !databaseId || !circlesTableId) return null;
+  if (usePrivateServerData) {
+    return privateData<CircleRow>('update-circle', { circleId, data });
+  }
   const circle = await tablesDB.getRow<CircleRow>({ databaseId, tableId: circlesTableId, rowId: circleId });
   if (circle.ownerId !== ownerId) throw new Error('You can only manage groups you own.');
   await teams.updateName({ teamId: circleId, name: data.name });
@@ -740,6 +833,7 @@ export async function updateAppwriteCircle(circleId: string, ownerId: string, da
 
 export async function listAppwriteCircleMembers(circleId: string) {
   if (!circlesConfigured || !databaseId || !circlesTableId) return [] as CircleMember[];
+  if (usePrivateServerData) return privateData<CircleMember[]>('list-circle-members', { circleId });
   const circle = await tablesDB.getRow<CircleRow>({ databaseId, tableId: circlesTableId, rowId: circleId });
   const { memberships } = await teams.listMemberships({ teamId: circleId, queries: [Query.limit(100)] });
   const invitations = notificationsConfigured && notificationsTableId
@@ -785,6 +879,10 @@ export async function listAppwriteCircleMembers(circleId: string) {
 
 export async function removeAppwriteCircleMember(circleId: string, membershipId: string, adminId: string) {
   if (!circlesConfigured || !databaseId || !circlesTableId || !mealsTableId || !ratingsTableId) throw new Error('Group sharing is not configured yet.');
+  if (usePrivateServerData) {
+    await privateData<{ success: boolean }>('remove-circle-member', { circleId, membershipId });
+    return;
+  }
   const circle = await tablesDB.getRow<CircleRow>({ databaseId, tableId: circlesTableId, rowId: circleId });
   if (circle.ownerId !== adminId) throw new Error('Only the group admin can remove members.');
   const { memberships } = await teams.listMemberships({ teamId: circleId, queries: [Query.limit(100)] });
@@ -806,6 +904,7 @@ export async function removeAppwriteCircleMember(circleId: string, membershipId:
 
 export async function deleteAppwriteCircle(circleId: string, ownerId: string) {
   if (!circlesConfigured || !databaseId || !circlesTableId) return null;
+  if (usePrivateServerData) return privateData<{ cleanupError: unknown }>('delete-circle', { circleId });
   const circle = await tablesDB.getRow<CircleRow>({ databaseId, tableId: circlesTableId, rowId: circleId });
   if (circle.ownerId !== ownerId) throw new Error('You can only delete groups you own.');
   await tablesDB.deleteRow({ databaseId, tableId: circlesTableId, rowId: circleId });
@@ -821,6 +920,12 @@ export async function deleteAppwriteCircle(circleId: string, ownerId: string) {
 export async function inviteToAppwriteCircle(circleId: string, username: string, inviterId: string, inviterName: string) {
   if (!circlesConfigured || !databaseId || !circlesTableId) throw new Error('Group sharing is not configured yet.');
   if (!notificationsConfigured || !notificationsTableId) throw new Error('Group invite notifications are not configured yet.');
+  if (usePrivateServerData) {
+    return privateData<{ profile: UserProfile; membership: Models.Membership; notification: NotificationRow }>(
+      'invite-circle-member',
+      { circleId, username, inviterName, origin: window.location.origin }
+    );
+  }
   const profile = await findAppwriteProfile(username);
   if (!profile) throw new Error(`No RateMyPlate user was found for @${normalizeUsername(username)}.`);
   if (profile.userId === inviterId) throw new Error('You are already a member of this group.');
