@@ -90,10 +90,15 @@ function tablePath(tableId: string) {
   return `/tablesdb/${pathPart(databaseId!)}/tables/${pathPart(tableId)}/rows`;
 }
 
+function withQueries(path: string, queries: string[]) {
+  const params = new URLSearchParams();
+  queries.forEach((query, index) => params.set(`queries[${index}]`, query));
+  const search = params.toString();
+  return search ? `${path}?${search}` : path;
+}
+
 async function listRows<T extends Row>(apiKey: string, tableId: string, queries: string[] = []) {
-  const url = new URL(`${endpoint}${tablePath(tableId)}`);
-  queries.forEach((query, index) => url.searchParams.set(`queries[${index}]`, query));
-  return appwriteRequest<{ rows: T[]; total: number }>(`${url.pathname}${url.search}`, { apiKey });
+  return appwriteRequest<{ rows: T[]; total: number }>(withQueries(tablePath(tableId), queries), { apiKey });
 }
 
 async function listAllRows<T extends Row>(apiKey: string, tableId: string, queries: string[] = []) {
@@ -160,9 +165,7 @@ async function currentUser(jwt: string) {
 }
 
 async function userTeams(jwt: string) {
-  const url = new URL(`${endpoint}/teams`);
-  url.searchParams.set('queries[0]', Query.limit(100));
-  return appwriteRequest<{ teams: Array<{ $id: string; name: string }> }>(`${url.pathname}${url.search}`, { jwt });
+  return appwriteRequest<{ teams: Array<{ $id: string; name: string }> }>(withQueries('/teams', [Query.limit(100)]), { jwt });
 }
 
 function profilePermissions(userId: string) {
@@ -365,10 +368,8 @@ async function handleOperation(
     const circleId = String(args.circleId || '');
     const team = await appwriteRequest<{ $id: string }>('/teams/' + pathPart(circleId), { jwt });
     if (team.$id !== circleId) throw Object.assign(new Error('The group team could not be verified.'), { status: 403 });
-    const membershipsUrl = new URL(`${endpoint}/teams/${pathPart(circleId)}/memberships`);
-    membershipsUrl.searchParams.set('queries[0]', Query.equal('userId', userId));
-    membershipsUrl.searchParams.set('queries[1]', Query.limit(1));
-    const { memberships } = await appwriteRequest<{ memberships: Membership[] }>(`${membershipsUrl.pathname}${membershipsUrl.search}`, { jwt });
+    const membershipsPath = withQueries(`/teams/${pathPart(circleId)}/memberships`, [Query.equal('userId', userId), Query.limit(1)]);
+    const { memberships } = await appwriteRequest<{ memberships: Membership[] }>(membershipsPath, { jwt });
     if (!memberships.some((membership) => membership.roles?.includes('owner'))) {
       throw Object.assign(new Error('Only the group admin can create its group record.'), { status: 403 });
     }
@@ -403,9 +404,8 @@ async function handleOperation(
     if (!circlesTableId || !notificationsTableId) return [];
     const circleId = String(args.circleId || '');
     const circle = await getAccessibleCircle(apiKey, jwt, userId, circleId);
-    const url = new URL(`${endpoint}/teams/${pathPart(circleId)}/memberships`);
-    url.searchParams.set('queries[0]', Query.limit(100));
-    const { memberships } = await appwriteRequest<{ memberships: Membership[] }>(`${url.pathname}${url.search}`, { apiKey });
+    const membershipsPath = withQueries(`/teams/${pathPart(circleId)}/memberships`, [Query.limit(100)]);
+    const { memberships } = await appwriteRequest<{ memberships: Membership[] }>(membershipsPath, { apiKey });
     const invitations = await listAllRows<Row>(apiKey, notificationsTableId, [
       Query.equal('senderId', circle.ownerId), Query.equal('circleId', circleId)
     ]).catch(() => [] as Row[]);
@@ -422,9 +422,8 @@ async function handleOperation(
     const circleId = String(args.circleId || '');
     const circle = await ownedCircle(apiKey, userId, circleId);
     const membershipId = String(args.membershipId || '');
-    const url = new URL(`${endpoint}/teams/${pathPart(circleId)}/memberships`);
-    url.searchParams.set('queries[0]', Query.limit(100));
-    const { memberships } = await appwriteRequest<{ memberships: Membership[] }>(`${url.pathname}${url.search}`, { apiKey });
+    const membershipsPath = withQueries(`/teams/${pathPart(circleId)}/memberships`, [Query.limit(100)]);
+    const { memberships } = await appwriteRequest<{ memberships: Membership[] }>(membershipsPath, { apiKey });
     const target = memberships.find((membership) => membership.$id === membershipId);
     if (!target) throw Object.assign(new Error('That group member could not be found.'), { status: 404 });
     if (target.userId === circle.ownerId) throw Object.assign(new Error('The group admin cannot be removed.'), { status: 400 });
@@ -452,9 +451,8 @@ async function handleOperation(
     const profile = profileResponse.rows[0];
     if (!profile) throw Object.assign(new Error(`No RateMyPlate user was found for @${username}.`), { status: 404 });
     if (profile.$id === userId) throw Object.assign(new Error('You are already a member of this group.'), { status: 400 });
-    const membershipsUrl = new URL(`${endpoint}/teams/${pathPart(circleId)}/memberships`);
-    membershipsUrl.searchParams.set('queries[0]', Query.limit(100));
-    const listed = await appwriteRequest<{ memberships: Membership[] }>(`${membershipsUrl.pathname}${membershipsUrl.search}`, { apiKey });
+    const membershipsPath = withQueries(`/teams/${pathPart(circleId)}/memberships`, [Query.limit(100)]);
+    const listed = await appwriteRequest<{ memberships: Membership[] }>(membershipsPath, { apiKey });
     let membership = listed.memberships.find((item) => item.userId === profile.$id) ?? null;
     if (!membership) {
       const created = await appwriteRequest<Membership>(`/teams/${pathPart(circleId)}/memberships`, {
