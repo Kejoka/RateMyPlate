@@ -448,12 +448,16 @@
 
   function selectMeal(meal: Meal) {
     selectedMeal = meal;
-    const recipe = parseRecipe(meal.recipe);
-    recipePortionView = recipe?.portions ?? 2;
+    syncRecipePortionView(meal);
     recipeUnitSystem = 'metric';
     const ownRating = meal.ratings.find((rating) => rating.isCurrentUser || rating.ownerId === currentUser?.$id);
     ratingDraft = ownRating?.value ?? 0;
     reviewDraft = ownRating?.review ?? '';
+  }
+
+  function syncRecipePortionView(meal: Meal | null) {
+    const recipePortions = Number(parseRecipe(meal?.recipe)?.portions);
+    recipePortionView = Number.isFinite(recipePortions) && recipePortions > 0 ? recipePortions : 2;
   }
 
   function ownRatingFor(meal: Meal) {
@@ -570,6 +574,7 @@
     if (!dataConfigured) {
       meals = storedLocalMeals.filter((meal) => !currentUser || meal.ownerId === currentUser.$id);
       selectedMeal = meals[0] ?? null;
+      syncRecipePortionView(selectedMeal);
       ratingDraft = selectedMeal ? ownRatingFor(selectedMeal) : 0;
       reviewDraft = selectedMeal?.ratings.find((rating) => rating.isCurrentUser || rating.ownerId === currentUser?.$id)?.review ?? '';
       return;
@@ -634,6 +639,7 @@
       }
     }
     selectedMeal = meals[0] ?? null;
+    syncRecipePortionView(selectedMeal);
     ratingDraft = selectedMeal ? ownRatingFor(selectedMeal) : 0;
     reviewDraft = selectedMeal?.ratings.find((rating) => rating.isCurrentUser || rating.ownerId === currentUser?.$id)?.review ?? '';
     await hydrateCircles(liveCircles);
@@ -926,6 +932,7 @@
         }
         meals = meals.map((meal) => meal.id === updated.id ? updated : meal);
         selectedMeal = updated;
+        syncRecipePortionView(updated);
         storedLocalMeals = storedLocalMeals.map((meal) => meal.id === updated.id ? updated : meal);
         localStorage.setItem('table-talk-meals', JSON.stringify(storedLocalMeals));
         storedDietaryTags = { ...storedDietaryTags, [updated.id]: updated.dietaryTags ?? [] };
@@ -967,6 +974,7 @@
         localStorage.setItem('table-talk-meals', JSON.stringify(storedLocalMeals));
         meals = [localMeal, ...meals];
         selectedMeal = localMeal;
+        syncRecipePortionView(localMeal);
         showAddModal = false;
         activeView = 'meals';
         toast(`${t('savedLocally')}: ${errorMessage(error, '')}`);
@@ -982,6 +990,7 @@
       }
       meals = [meal, ...meals.filter((existing) => existing.id !== meal.id)];
       selectedMeal = meal;
+      syncRecipePortionView(meal);
       showAddModal = false;
       activeView = 'meals';
       toast(t('mealAdded'));
@@ -2192,6 +2201,19 @@
       overflow-y: auto;
     }
     .form-grid, .recipe-editor, .recipe-ingredient-row, .recipe-step-row { min-width: 0; }
+  }
+
+  .select-wrap select { padding-right: 40px; }
+  .select-wrap :global(svg) { right: 14px; }
+  .recipe-view-steps li { grid-template-columns: 20px minmax(0, 1fr); align-items: start; }
+  .recipe-view-steps li > span { margin-top: -2px; }
+
+  @media (max-width: 680px) {
+    .main-content { width: 100%; min-width: 0; }
+    .page-wrap { width: 100%; max-width: none; min-width: 0; align-self: stretch; margin: 0; }
+    :global(input:not([type='checkbox']):not([type='radio'])),
+    :global(textarea),
+    :global(select) { font-size: 16px !important; line-height: 1.25; }
   }
 
   @media (prefers-reduced-motion: reduce) {
