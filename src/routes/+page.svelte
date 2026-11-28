@@ -1276,7 +1276,7 @@
   {#if showMobileNav && !showCircleModal && !showAddModal}<button class="mobile-nav-scrim" aria-label={t('closeMenu')} onclick={() => (showMobileNav = false)}></button>{/if}
 
   <main class="main-content">
-    <header class="topbar" class:mobile-search-open={showMobileSearch}>
+    <header class="topbar" class:mobile-search-open={showMobileSearch} class:notifications-open={showNotificationMenu}>
       <button class="mobile-menu mobile-only" aria-label={t('openMenu')} onclick={openMobileNavigation}><Menu size={22} /></button>
       <div class="breadcrumbs"><span>RateMyPlate</span><ChevronRight size={14} /><strong>{activeView === 'top' ? t('topRated') : activeView === 'meals' ? t('myMeals') : t('overview')}</strong></div>
       <div class="topbar-actions">
@@ -2069,6 +2069,8 @@
       height: calc(65px + env(safe-area-inset-top));
       padding: env(safe-area-inset-top) 17px 0;
     }
+
+    .topbar.notifications-open { z-index: 50; }
 
     .topbar.mobile-search-open {
       height: calc(65px + env(safe-area-inset-top));
