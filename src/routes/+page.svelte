@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
+  import { fade, fly } from 'svelte/transition';
   import {
     ArrowUpRight,
     BookOpen,
@@ -304,6 +305,7 @@
 
   function openEditMeal(meal: Meal) {
     if (!canManageMeal(meal)) return;
+    closeOverlaysForModal();
     editingMeal = meal;
     newMeal = {
       name: meal.name,
@@ -356,6 +358,9 @@
     showFilterMenu = false;
     showMobileNav = false;
     showMobileSearch = false;
+    showAddModal = false;
+    showCircleModal = false;
+    editingMeal = null;
   }
 
   const groups = $derived.by(() => {
@@ -456,6 +461,7 @@
   }
 
   async function openCircleModal(circle?: Circle) {
+    closeOverlaysForModal();
     editingCircle = circle ?? null;
     circleMembers = [];
     circleForm = circle ? { name: circle.name, color: circle.color } : { name: '', color: '#48a868' };
@@ -840,9 +846,18 @@
   }
 
   function openAddModal() {
+    closeOverlaysForModal();
     editingMeal = null;
     resetForm();
     showAddModal = true;
+  }
+
+  function closeOverlaysForModal() {
+    showMobileNav = false;
+    showMobileSearch = false;
+    showNotificationMenu = false;
+    showFilterMenu = false;
+    showMealMenu = false;
   }
 
   function toggleDietaryTag(tag: DietaryTag) {
@@ -1266,7 +1281,8 @@
       <div class="breadcrumbs"><span>RateMyPlate</span><ChevronRight size={14} /><strong>{activeView === 'top' ? t('topRated') : activeView === 'meals' ? t('myMeals') : t('overview')}</strong></div>
       <div class="topbar-actions">
         <button class="mobile-search-trigger mobile-only" aria-label={t(showMobileSearch ? 'closeSearch' : 'openSearch')} aria-expanded={showMobileSearch} onclick={toggleMobileSearch}>
-          {#if showMobileSearch}<X size={18} />{:else}<Search size={17} />{/if}
+          <Search class="search-open-icon" size={17} aria-hidden="true" />
+          <X class="search-close-icon" size={18} aria-hidden="true" />
         </button>
         <div class="search-box" class:mobile-open={showMobileSearch}>
           <Search size={17} class="search-icon" />
@@ -1275,7 +1291,7 @@
         <div class="notification-wrap">
           <button class="icon-button notification-button" aria-label={t('notifications')} aria-expanded={showNotificationMenu} onclick={() => (showNotificationMenu = !showNotificationMenu)}><Heart size={18} />{#if unreadNotifications}<span>{unreadNotifications > 9 ? '9+' : unreadNotifications}</span>{/if}</button>
           {#if showNotificationMenu}
-            <div class="notification-menu" role="region" aria-label={t('notifications')}>
+            <div class="notification-menu" role="region" aria-label={t('notifications')} transition:fade={{ duration: 150 }}>
               <div class="notification-menu-heading"><strong>{t('notifications')}</strong>{#if unreadNotifications}<button onclick={markAllNotificationsRead}>{t('markAllRead')}</button>{/if}</div>
               {#if notifications.length}
                 {#each notifications as notification}
@@ -1444,8 +1460,8 @@
 
   {#if showCircleModal}
     {@const canManageCircle = !editingCircle || !appwriteConfigured || editingCircle.ownerId === currentUser?.$id}
-    <div class="modal-backdrop" role="presentation" onclick={(event) => event.target === event.currentTarget && (showCircleModal = false)}>
-      <dialog open class="add-modal circle-modal" aria-modal="true" aria-labelledby="circle-title">
+    <div class="modal-backdrop" role="presentation" onclick={(event) => event.target === event.currentTarget && (showCircleModal = false)} transition:fade={{ duration: 170 }}>
+      <dialog open class="add-modal circle-modal" aria-modal="true" aria-labelledby="circle-title" transition:fly={{ y: 12, duration: 210 }}>
         <div class="modal-header"><div><div class="eyebrow"><Users size={14} /> {t('circles')}</div><h2 id="circle-title">{editingCircle ? t('manageCircle') : t('newCircle')}</h2><p>{editingCircle ? editingCircle.name : t('inviteCopy')}</p></div><button class="drawer-close light" aria-label={t('closeDialog')} onclick={() => (showCircleModal = false)}><X size={18} /></button></div>
         <form onsubmit={(event) => { event.preventDefault(); saveCircle(); }}>
           {#if canManageCircle}
@@ -1464,8 +1480,8 @@
   {/if}
 
   {#if showAddModal}
-    <div class="modal-backdrop" role="presentation" onclick={(event) => event.target === event.currentTarget && (showAddModal = false)}>
-      <dialog open class="add-modal" aria-modal="true" aria-labelledby="add-meal-title">
+    <div class="modal-backdrop" role="presentation" onclick={(event) => event.target === event.currentTarget && (showAddModal = false)} transition:fade={{ duration: 170 }}>
+      <dialog open class="add-modal" aria-modal="true" aria-labelledby="add-meal-title" transition:fly={{ y: 14, duration: 220 }}>
         <div class="modal-header"><div><div class="eyebrow"><Sparkles size={14} /> {editingMeal ? t('editMeal') : t('newMemory')}</div><h2 id="add-meal-title">{editingMeal ? t('editMeal') : t('whatDidYouMake')}</h2><p>{t('newMemoryCopy')}</p></div><button class="drawer-close light" aria-label={t('closeDialog')} onclick={() => { showAddModal = false; editingMeal = null; }}><X size={18} /></button></div>
         <form onsubmit={(event) => { event.preventDefault(); saveMeal(); }}>
           <div class="form-grid">
@@ -2100,5 +2116,86 @@
       .topbar.mobile-search-open .mobile-search-trigger { color: #d0dbd1; }
       .search-box.mobile-open { border-color: #34463b; background: #1b2821; }
     }
+  }
+
+  .modal-backdrop { z-index: 60; }
+  .add-modal { z-index: 1; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+  @media (max-width: 680px) {
+    .topbar .mobile-search-trigger { position: relative; z-index: 26; transition: color .16s ease, background-color .16s ease; }
+    .mobile-search-trigger :global(svg) { position: absolute; transition: opacity .14s ease, transform .18s cubic-bezier(.2,.8,.2,1); }
+    .mobile-search-trigger :global(.search-open-icon) { opacity: 1; transform: rotate(0) scale(1); }
+    .mobile-search-trigger :global(.search-close-icon) { opacity: 0; transform: rotate(-80deg) scale(.72); }
+    .topbar.mobile-search-open .mobile-search-trigger :global(.search-open-icon) { opacity: 0; transform: rotate(80deg) scale(.72); }
+    .topbar.mobile-search-open .mobile-search-trigger :global(.search-close-icon) { opacity: 1; transform: rotate(0) scale(1); }
+    .topbar .search-box {
+      position: absolute;
+      z-index: 24;
+      top: calc(env(safe-area-inset-top) + 12.5px);
+      right: 17px;
+      left: 59px;
+      display: flex;
+      width: auto;
+      min-width: 0;
+      height: 40px;
+      padding: 0 12px;
+      border-color: transparent;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateX(-6px) scale(.985);
+      transform-origin: left center;
+      transition: opacity .14s ease, transform .19s cubic-bezier(.2,.8,.2,1), visibility 0s linear .19s, border-color .16s ease, background-color .16s ease;
+    }
+    .topbar .search-box input { display: none; }
+    .topbar.mobile-search-open .search-box.mobile-open {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 12.5px);
+      right: 17px;
+      left: 59px;
+      width: auto;
+      height: 40px;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(0) scale(1);
+      transition-delay: 0s;
+    }
+    .topbar.mobile-search-open .search-box.mobile-open input { display: block; }
+
+    .modal-backdrop {
+      inset: 0;
+      place-items: center;
+      padding: calc(65px + env(safe-area-inset-top)) 12px env(safe-area-inset-bottom);
+      overflow: hidden;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .modal-backdrop::before {
+      position: absolute;
+      z-index: 0;
+      inset: calc(65px + env(safe-area-inset-top)) 0 0;
+      content: '';
+      background: rgba(25,40,31,.48);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      pointer-events: none;
+    }
+    .add-modal {
+      width: 100%;
+      max-height: calc(100dvh - 65px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px);
+      min-width: 0;
+      padding: 21px 18px 18px;
+      border-radius: 16px;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    .form-grid, .recipe-editor, .recipe-ingredient-row, .recipe-step-row { min-width: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .topbar .search-box, .mobile-search-trigger, .mobile-search-trigger :global(svg) { transition-duration: 1ms !important; }
+    .notification-menu, .modal-backdrop, .add-modal { animation-duration: 1ms !important; }
   }
 </style>
