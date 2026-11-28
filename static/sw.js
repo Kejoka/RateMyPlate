@@ -1,5 +1,5 @@
-const CACHE = 'ratemyplate-shell-v3';
-const SHELL = ['/manifest.webmanifest', '/favicon.svg'];
+const CACHE = 'ratemyplate-shell-v4';
+const SHELL = ['/manifest.webmanifest', '/favicon.svg', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import {
     ArrowUpRight,
     BookOpen,
@@ -197,6 +197,8 @@
   let archiveSort = $state<'date' | 'rating'>('date');
   let savedMealIds = $state<string[]>([]);
   let showMobileNav = $state(false);
+  let showMobileSearch = $state(false);
+  let searchInput = $state<HTMLInputElement>();
   let showToast = $state(false);
   let toastMessage = $state('');
   let ratingDraft = $state(0);
@@ -323,6 +325,27 @@
     language = language === 'en' ? 'de' : 'en';
     document.documentElement.lang = language;
     localStorage.setItem('table-talk-language', language);
+  }
+
+  async function toggleMobileSearch() {
+    showMobileSearch = !showMobileSearch;
+    if (showMobileSearch) {
+      await tick();
+      searchInput?.focus();
+    }
+  }
+
+  function closeNotificationMenuOnOutsidePointer(event: PointerEvent) {
+    if (!showNotificationMenu || !(event.target instanceof Element)) return;
+    if (!event.target.closest('.notification-wrap')) showNotificationMenu = false;
+  }
+
+  function handleGlobalKeydown(event: KeyboardEvent) {
+    if (event.key !== 'Escape') return;
+    showNotificationMenu = false;
+    showFilterMenu = false;
+    showMobileNav = false;
+    showMobileSearch = false;
   }
 
   const groups = $derived.by(() => {
@@ -1136,6 +1159,8 @@
   }
 </script>
 
+<svelte:window onpointerdown={closeNotificationMenuOnOutsidePointer} onkeydown={handleGlobalKeydown} />
+
 <svelte:head>
   <title>{t('pageTitle')}</title>
       <meta name="description" content={t('appDescription')} />
@@ -1227,9 +1252,12 @@
       <button class="mobile-menu mobile-only" aria-label={t('openMenu')} onclick={() => (showMobileNav = true)}><Menu size={22} /></button>
       <div class="breadcrumbs"><span>RateMyPlate</span><ChevronRight size={14} /><strong>{activeView === 'top' ? t('topRated') : activeView === 'meals' ? t('myMeals') : t('overview')}</strong></div>
       <div class="topbar-actions">
-        <div class="search-box">
-          <Search size={17} />
-          <input aria-label={t('searchTable')} placeholder={t('searchTable')} bind:value={searchTerm} />
+        <button class="mobile-search-trigger mobile-only" aria-label={t(showMobileSearch ? 'closeSearch' : 'openSearch')} aria-expanded={showMobileSearch} onclick={toggleMobileSearch}>
+          {#if showMobileSearch}<X size={18} />{:else}<Search size={17} />{/if}
+        </button>
+        <div class="search-box" class:mobile-open={showMobileSearch}>
+          <Search size={17} class="search-icon" />
+          <input bind:this={searchInput} aria-label={t('searchTable')} placeholder={t('searchTable')} bind:value={searchTerm} />
         </div>
         <div class="notification-wrap">
           <button class="icon-button notification-button" aria-label={t('notifications')} aria-expanded={showNotificationMenu} onclick={() => (showNotificationMenu = !showNotificationMenu)}><Heart size={18} />{#if unreadNotifications}<span>{unreadNotifications > 9 ? '9+' : unreadNotifications}</span>{/if}</button>
@@ -1955,5 +1983,71 @@
     .upload-copy span { color: #9eafa2; }
     .upload-preview { border-color: #405b48; }
     :global(.upload-arrow) { color: #a1b2a5; }
+  }
+
+  @media (max-width: 680px) {
+    :global(html), :global(body) {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    .app-shell {
+      height: 100vh;
+      height: 100dvh;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .main-content {
+      display: flex;
+      height: 100%;
+      min-height: 0;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .topbar {
+      position: sticky;
+      z-index: 18;
+      top: 0;
+      flex: 0 0 auto;
+      height: calc(65px + env(safe-area-inset-top));
+      padding: env(safe-area-inset-top) 17px 0;
+    }
+
+    .page-wrap {
+      min-height: 0;
+      flex: 1 1 auto;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(50px + env(safe-area-inset-bottom));
+    }
+
+    .breadcrumbs { min-width: 0; overflow: hidden; white-space: nowrap; }
+    .breadcrumbs span, .breadcrumbs :global(svg) { flex: 0 0 auto; }
+    .breadcrumbs strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .topbar-actions { position: relative; flex: 0 0 auto; gap: 9px; }
+    .mobile-search-trigger { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; padding: 0; border: 0; border-radius: 8px; color: #627269; background: transparent; }
+    .search-box { display: none; }
+    .search-box.mobile-open { position: absolute; z-index: 24; top: 0; right: 75px; display: flex; width: min(220px, calc(100vw - 176px)); min-width: 136px; height: 34px; padding: 0 9px; border-color: #dce4dc; background: #fffefa; }
+    .search-box.mobile-open input { display: block; width: 100%; font-size: 10px; }
+    .search-box.mobile-open :global(.search-icon) { flex: 0 0 auto; width: 15px; height: 15px; }
+    .notification-wrap { z-index: 25; }
+    .notification-menu { max-height: calc(100dvh - 90px); overflow-y: auto; overscroll-behavior: contain; }
+    .view-toolbar { align-items: center; gap: 8px; }
+    .filter-pills { min-width: 0; max-width: calc(100vw - 120px); align-items: center; gap: 4px; padding-bottom: 0; }
+    .filter-pill { height: 34px; gap: 4px; padding: 0 5px; font-size: 9px; white-space: nowrap; }
+    .filter-pill :global(svg) { width: 13px; height: 13px; }
+    .filter-control { align-self: center; flex: 0 0 auto; }
+    .filter-control > .quiet-button { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: 5px; padding: 0 8px; border: 1px solid #e5e2d9; border-radius: 8px; line-height: 1; }
+
+    @media (prefers-color-scheme: dark) {
+      .mobile-search-trigger { color: #a7b5aa; }
+      .search-box.mobile-open { border-color: #34463b; background: #1b2821; }
+    }
   }
 </style>
