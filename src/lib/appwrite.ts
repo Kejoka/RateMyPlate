@@ -387,11 +387,13 @@ export async function updateProfilePrefs(prefs: Record<string, unknown>) {
 
 export function profileImagePreview(imageId?: string) {
   if (!imageId || !bucketId) return '';
+  if (usePrivateServerData) return `private-appwrite-file:${imageId}`;
   return storage.getFileView(bucketId, imageId);
 }
 
 function imageFor(imageId?: string) {
   if (!imageId || !bucketId) return '';
+  if (usePrivateServerData) return `private-appwrite-file:${imageId}`;
   // Appwrite Cloud image transformations require a paid plan. Uploaded meal
   // files are already resized and compressed before upload, so use the free
   // file-view endpoint for reliable rendering on every environment.
@@ -405,8 +407,18 @@ function imageFor(imageId?: string) {
  * short-lived object URL instead.
  */
 export async function loadAppwriteImagePreview(src: string) {
-  if (!src || !endpoint || !projectId || !src.startsWith(endpoint)) return null;
+  if (!src) return null;
   try {
+    const privateFile = src.match(/^private-appwrite-file:(.+)$/);
+    if (privateFile) {
+      const session = await account.createJWT();
+      const response = await fetch(`/api/private-data?fileId=${encodeURIComponent(privateFile[1])}`, {
+        headers: { Authorization: `Bearer ${session.jwt}` }
+      });
+      if (!response.ok) return null;
+      return URL.createObjectURL(await response.blob());
+    }
+    if (!endpoint || !projectId || !src.startsWith(endpoint)) return null;
     const bytes = await client.call(
       'GET',
       new URL(src),

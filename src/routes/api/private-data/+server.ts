@@ -23,6 +23,7 @@ type User = { $id: string; name: string; email?: string };
 type CircleRow = Row & { name: string; ownerId: string; memberIds?: string[]; color?: string };
 type MealRow = Row & { ownerId: string; circle: string; imageId?: string; name: string };
 type ProfileRow = Row & { username: string; displayName: string; userId: string };
+type StoredFile = { $id: string; $permissions?: string[]; mimeType?: string };
 type Membership = {
   $id: string;
   userId?: string;
@@ -707,6 +708,67 @@ export const POST: RequestHandler = async (event) => {
   } catch (error) {
     const appwriteError = error as AppwriteError;
     return json({ error: appwriteError.message || 'Private Appwrite operation failed.' }, {
+      status: appwriteError.status || 500,
+      headers: { 'Cache-Control': 'no-store' }
+    });
+  }
+};
+
+/** Serve private image bytes through the authenticated, same-origin Worker. */
+export const GET: RequestHandler = async (event) => {
+  try {
+    const origin = event.request.headers.get('origin');
+    if (origin && origin !== new URL(event.request.url).origin) {
+      throw Object.assign(new Error('Cross-origin request rejected.'), { status: 403 });
+    }
+
+    const apiKey = runtimeKey(event);
+    requireConfig(apiKey);
+    if (!bucketId) throw Object.assign(new Error('Image storage is not configured.'), { status: 503 });
+    const jwt = event.request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim();
+    if (!jwt) throw Object.assign(new Error('Sign in to continue.'), { status: 401 });
+    const user = await currentUser(jwt);
+    const fileId = event.url.searchParams.get('fileId')?.trim();
+    if (!fileId) throw Object.assign(new Error('An image ID is required.'), { status: 400 });
+
+    const file = await appwriteRequest<StoredFile>(
+      `/storage/buckets/${pathPart(bucketId)}/files/${pathPart(fileId)}`,
+      { apiKey }
+    );
+    const canReadAsOwner = file.$permissions?.includes(Permission.read(Role.user(user.$id))) ?? false;
+    const memberships = canReadAsOwner ? { teams: [] as Array<{ $id: string; name: string }> } : await userTeams(jwt);
+    const canReadAsTeam = memberships.teams.some((team) =>
+      file.$permissions?.includes(Permission.read(Role.team(team.$id))) ?? false
+    );
+    if (!canReadAsOwner && !canReadAsTeam) {
+      throw Object.assign(new Error('Image not found.'), { status: 404 });
+    }
+
+    const imageResponse = await fetch(
+      `${endpoint}/storage/buckets/${pathPart(bucketId)}/files/${pathPart(fileId)}/view`,
+      { headers: { 'X-Appwrite-Project': projectId!, 'X-Appwrite-Key': apiKey! } }
+    );
+    if (!imageResponse.ok) {
+      throw Object.assign(new Error('Unable to load this image.'), { status: imageResponse.status });
+    }
+    const upstreamType = imageResponse.headers.get('content-type') || '';
+    const contentType = upstreamType.toLowerCase().startsWith('image/')
+      ? upstreamType
+      : file.mimeType || upstreamType || 'application/octet-stream';
+    if (!contentType.toLowerCase().startsWith('image/')) {
+      throw Object.assign(new Error('This file is not an image.'), { status: 415 });
+    }
+    return new Response(await imageResponse.arrayBuffer(), {
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'private, no-store',
+        'X-Content-Type-Options': 'nosniff',
+        'Vary': 'Authorization'
+      }
+    });
+  } catch (error) {
+    const appwriteError = error as AppwriteError;
+    return json({ error: appwriteError.message || 'Private image request failed.' }, {
       status: appwriteError.status || 500,
       headers: { 'Cache-Control': 'no-store' }
     });

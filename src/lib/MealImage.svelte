@@ -24,7 +24,9 @@
     if (source === previousSrc) return;
     previousSrc = source;
     failed = false;
-    displaySrc = source;
+    // Private production images are loaded through the authenticated Worker;
+    // never hand the internal marker to the browser as an <img> URL.
+    displaySrc = source.startsWith('private-appwrite-file:') ? '' : source;
     if (objectUrl) {
       URL.revokeObjectURL(objectUrl);
       objectUrl = '';

@@ -501,7 +501,7 @@
       profileImageObjectUrl = '';
     }
     const source = imageId ? profileImagePreview(imageId) : '';
-    profileImageUrl = source;
+    profileImageUrl = source.startsWith('private-appwrite-file:') ? '' : source;
     if (!source) return;
     const loaded = await loadAppwriteImagePreview(source);
     if (loadId !== profileImageLoadId) {
@@ -1431,8 +1431,9 @@
               <div class="recipe-category-add"><input aria-label={t('ingredientCategories')} placeholder={t('addCategory')} bind:value={recipeCategoryDraft} onkeydown={(event) => event.key === 'Enter' && (event.preventDefault(), addRecipeCategory())} /><button type="button" class="quiet-button" onclick={addRecipeCategory}><Plus size={14} /> {t('addCategory')}</button></div>
               <div class="recipe-subheading"><strong>{t('ingredients')}</strong><button type="button" class="quiet-button" onclick={addRecipeIngredient}><Plus size={14} /> {t('addIngredient')}</button></div>
               {#each newMeal.recipeData.ingredients as ingredient (ingredient.id)}
-                <div class="recipe-ingredient-row"><input aria-label={t('ingredientName')} placeholder="e.g. flour" bind:value={ingredient.name} /><input aria-label={t('ingredientAmount')} type="number" min="0" step="any" bind:value={ingredient.amount} /><input aria-label={t('ingredientUnit')} placeholder={t('ingredientUnitPlaceholder')} bind:value={ingredient.unit} /><select aria-label={t('ingredientCategory')} bind:value={ingredient.category}>{#each newMeal.recipeData.categories as category}<option value={category}>{category}</option>{/each}</select><button type="button" class="recipe-remove" aria-label={t('deleteMeal')} onclick={() => removeRecipeIngredient(ingredient.id)}><X size={15} /></button></div>
+                <div class="recipe-ingredient-row"><input aria-label={t('ingredientName')} placeholder={t('ingredientNamePlaceholder')} bind:value={ingredient.name} /><input aria-label={t('ingredientAmount')} type="number" min="0" step="any" bind:value={ingredient.amount} /><input aria-label={t('ingredientUnit')} list="ingredient-unit-options" placeholder={t('ingredientUnitPlaceholder')} bind:value={ingredient.unit} /><select aria-label={t('ingredientCategory')} bind:value={ingredient.category}>{#each newMeal.recipeData.categories as category}<option value={category}>{category}</option>{/each}</select><button type="button" class="recipe-remove" aria-label={t('deleteMeal')} onclick={() => removeRecipeIngredient(ingredient.id)}><X size={15} /></button></div>
               {/each}
+              <datalist id="ingredient-unit-options"><option value="g"></option><option value="kg"></option><option value="ml"></option><option value="l"></option><option value={t('unitTeaspoon')}></option><option value={t('unitTablespoon')}></option><option value={t('unitCup')}></option><option value={t('unitPinch')}></option><option value={t('unitHandful')}></option><option value={t('unitPackage')}></option><option value={t('unitPiece')}></option></datalist>
               <div class="recipe-subheading"><strong>{t('instructions')}</strong><button type="button" class="quiet-button" onclick={addRecipeStep}><Plus size={14} /> {t('addStep')}</button></div>
               {#each newMeal.recipeData.steps as step, index (step.id)}
                 <div class="recipe-step-row"><span class="recipe-step-number">{index + 1}</span><textarea aria-label={`${t('instructions')} ${index + 1}`} rows="2" placeholder={t('describeStep')} bind:value={step.instructions}></textarea><button type="button" class="recipe-remove" aria-label={t('deleteMeal')} disabled={newMeal.recipeData.steps.length <= 1} onclick={() => newMeal.recipeData.steps = newMeal.recipeData.steps.filter((item) => item.id !== step.id)}><X size={15} /></button></div>
