@@ -2203,8 +2203,8 @@
     .form-grid, .recipe-editor, .recipe-ingredient-row, .recipe-step-row { min-width: 0; }
   }
 
-  .select-wrap select { padding-right: 40px; }
-  .select-wrap :global(svg) { right: 14px; }
+  .select-wrap select { padding-right: 52px; }
+  .select-wrap :global(svg) { position: absolute; top: 50%; right: 18px; z-index: 1; transform: translateY(-50%); color: #aeb5ad; pointer-events: none; }
   .recipe-view-steps li { grid-template-columns: 20px minmax(0, 1fr); align-items: start; }
   .recipe-view-steps li > span { margin-top: -2px; }
 
