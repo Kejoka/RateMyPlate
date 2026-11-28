@@ -2055,9 +2055,17 @@
     }
 
     .topbar.mobile-search-open {
-      height: calc(112px + env(safe-area-inset-top));
-      align-items: flex-start;
+      height: calc(65px + env(safe-area-inset-top));
+      align-items: center;
+      gap: 0;
     }
+
+    .topbar.mobile-search-open .mobile-menu,
+    .topbar.mobile-search-open .breadcrumbs { display: none; }
+    .topbar.mobile-search-open .topbar-actions { width: 100%; flex: 1 1 auto; gap: 8px; }
+    .topbar.mobile-search-open .notification-wrap,
+    .topbar.mobile-search-open .top-avatar { display: none; }
+    .topbar.mobile-search-open .mobile-search-trigger { width: 34px; height: 38px; flex-basis: 34px; border: 1px solid transparent; border-radius: 10px; }
 
     .page-wrap {
       min-height: 0;
@@ -2075,8 +2083,8 @@
     .topbar-actions { position: static; flex: 0 0 auto; gap: 9px; }
     .mobile-search-trigger { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; padding: 0; border: 0; border-radius: 8px; color: #627269; background: transparent; }
     .search-box { display: none; }
-    .search-box.mobile-open { position: absolute; z-index: 24; top: auto; right: 17px; bottom: 10px; left: 17px; display: flex; width: auto; min-width: 0; height: 38px; padding: 0 11px; border-color: #dce4dc; background: #fffefa; }
-    .search-box.mobile-open input { display: block; width: 100%; font-size: 10px; }
+    .search-box.mobile-open { position: static; z-index: auto; display: flex; width: auto; min-width: 0; height: 40px; flex: 1 1 auto; padding: 0 12px; border-color: #dce4dc; background: #fffefa; }
+    .search-box.mobile-open input { display: block; width: 100%; font-size: 12px; }
     .search-box.mobile-open :global(.search-icon) { flex: 0 0 auto; width: 15px; height: 15px; }
     .notification-wrap { z-index: 25; }
     .notification-menu { position: fixed; z-index: 45; top: calc(65px + env(safe-area-inset-top) + 8px); right: auto; left: 50%; width: min(320px, calc(100vw - 28px)); max-height: calc(100dvh - 90px); overflow-y: auto; overscroll-behavior: contain; transform: translateX(-50%); }
@@ -2089,6 +2097,7 @@
 
     @media (prefers-color-scheme: dark) {
       .mobile-search-trigger { color: #a7b5aa; }
+      .topbar.mobile-search-open .mobile-search-trigger { color: #d0dbd1; }
       .search-box.mobile-open { border-color: #34463b; background: #1b2821; }
     }
   }
