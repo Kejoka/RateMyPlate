@@ -348,7 +348,7 @@
 
   function closeNotificationMenuOnOutsidePointer(event: PointerEvent) {
     if (!(event.target instanceof Element)) return;
-    if (showNotificationMenu && !event.target.closest('.notification-wrap')) showNotificationMenu = false;
+    if (showNotificationMenu && !event.target.closest('.notification-wrap, .notification-menu')) showNotificationMenu = false;
     if (showMobileSearch && !event.target.closest('.search-box, .mobile-search-trigger')) showMobileSearch = false;
   }
 
@@ -1276,7 +1276,7 @@
   {#if showMobileNav && !showCircleModal && !showAddModal}<button class="mobile-nav-scrim" aria-label={t('closeMenu')} onclick={() => (showMobileNav = false)}></button>{/if}
 
   <main class="main-content">
-    <header class="topbar" class:mobile-search-open={showMobileSearch} class:notifications-open={showNotificationMenu}>
+    <header class="topbar" class:mobile-search-open={showMobileSearch}>
       <button class="mobile-menu mobile-only" aria-label={t('openMenu')} onclick={openMobileNavigation}><Menu size={22} /></button>
       <div class="breadcrumbs"><span>RateMyPlate</span><ChevronRight size={14} /><strong>{activeView === 'top' ? t('topRated') : activeView === 'meals' ? t('myMeals') : t('overview')}</strong></div>
       <div class="topbar-actions">
@@ -1290,18 +1290,6 @@
         </div>
         <div class="notification-wrap">
           <button class="icon-button notification-button" aria-label={t('notifications')} aria-expanded={showNotificationMenu} onclick={() => (showNotificationMenu = !showNotificationMenu)}><Heart size={18} />{#if unreadNotifications}<span>{unreadNotifications > 9 ? '9+' : unreadNotifications}</span>{/if}</button>
-          {#if showNotificationMenu}
-            <div class="notification-menu" role="region" aria-label={t('notifications')} transition:fade={{ duration: 150 }}>
-              <div class="notification-menu-heading"><strong>{t('notifications')}</strong>{#if unreadNotifications}<button onclick={markAllNotificationsRead}>{t('markAllRead')}</button>{/if}</div>
-              {#if notifications.length}
-                {#each notifications as notification}
-                  <button class:unread={!notification.read} class="notification-item" onclick={async () => { if (!notification.read && currentUser) { await markAppwriteNotificationRead(notification.id, currentUser.$id).catch(() => null); notifications = notifications.map((item) => item.id === notification.id ? { ...item, read: true } : item); } activeView = 'meals'; filterCircle = notification.circleName; showNotificationMenu = false; await loadUserMeals(); }}>
-                    <span class="notification-icon"><Users size={14} /></span><span><strong>{t('groupInviteNotification', { sender: notification.senderName, group: notification.circleName })}</strong><small>{notification.read ? t('notificationRead') : t('notificationUnread')}</small></span>
-                  </button>
-                {/each}
-              {:else}<p class="notification-empty">{t('noNotifications')}</p>{/if}
-            </div>
-          {/if}
         </div>
         <div class="top-avatar">{#if profileImageUrl}<img src={profileImageUrl} alt="" />{:else}{displayInitials}{/if}</div>
       </div>
@@ -1542,6 +1530,18 @@
 
   {#if showToast}<div class="toast"><span class="toast-check"><Check size={14} /></span>{toastMessage}</div>{/if}
   </div>
+  {#if showNotificationMenu}
+    <div class="notification-menu" role="region" aria-label={t('notifications')} transition:fade={{ duration: 150 }}>
+      <div class="notification-menu-heading"><strong>{t('notifications')}</strong>{#if unreadNotifications}<button onclick={markAllNotificationsRead}>{t('markAllRead')}</button>{/if}</div>
+      {#if notifications.length}
+        {#each notifications as notification}
+          <button class:unread={!notification.read} class="notification-item" onclick={async () => { if (!notification.read && currentUser) { await markAppwriteNotificationRead(notification.id, currentUser.$id).catch(() => null); notifications = notifications.map((item) => item.id === notification.id ? { ...item, read: true } : item); } activeView = 'meals'; filterCircle = notification.circleName; showNotificationMenu = false; await loadUserMeals(); }}>
+            <span class="notification-icon"><Users size={14} /></span><span><strong>{t('groupInviteNotification', { sender: notification.senderName, group: notification.circleName })}</strong><small>{notification.read ? t('notificationRead') : t('notificationUnread')}</small></span>
+          </button>
+        {/each}
+      {:else}<p class="notification-empty">{t('noNotifications')}</p>{/if}
+    </div>
+  {/if}
 {/if}
 
 <style>
@@ -1836,7 +1836,7 @@
   .person-review { flex-basis: 100%; margin: 1px 0 2px 32px; color: #6d7b71; font-size: 9px; line-height: 1.45; }
   .notification-wrap { position: relative; }
   .notification-button span { display: grid; place-items: center; min-width: 15px; height: 15px; padding: 0 3px; border: 0; border-radius: 999px; color: #fff; background: #287344; font-size: 7px; font-weight: 700; }
-  .notification-menu { position: absolute; z-index: 20; top: calc(100% + 10px); right: 0; width: min(320px, calc(100vw - 34px)); padding: 10px; border: 1px solid #dfe8df; border-radius: 12px; background: #fffefa; box-shadow: 0 15px 35px rgba(27, 56, 36, .16); }
+  .notification-menu { position: fixed; z-index: 80; top: 86px; right: 90px; width: min(320px, calc(100vw - 34px)); max-height: calc(100dvh - 100px); overflow-y: auto; overscroll-behavior: contain; padding: 10px; border: 1px solid #dfe8df; border-radius: 12px; background: #fffefa; box-shadow: 0 15px 35px rgba(27, 56, 36, .16); }
   .notification-menu-heading { display: flex; align-items: center; justify-content: space-between; padding: 3px 5px 8px; border-bottom: 1px solid #edf1ed; }
   .notification-menu-heading strong { color: #24392b; font-size: 11px; }
   .notification-menu-heading button { padding: 0; border: 0; color: #287344; background: transparent; font-size: 8px; font-weight: 700; }
@@ -2070,8 +2070,6 @@
       padding: env(safe-area-inset-top) 17px 0;
     }
 
-    .topbar.notifications-open { z-index: 50; }
-
     .topbar.mobile-search-open {
       height: calc(65px + env(safe-area-inset-top));
       align-items: center;
@@ -2105,7 +2103,7 @@
     .search-box.mobile-open input { display: block; width: 100%; font-size: 12px; }
     .search-box.mobile-open :global(.search-icon) { flex: 0 0 auto; width: 15px; height: 15px; }
     .notification-wrap { z-index: 25; }
-    .notification-menu { position: fixed; z-index: 45; top: calc(65px + env(safe-area-inset-top) + 8px); right: auto; left: 50%; width: min(320px, calc(100vw - 28px)); max-height: calc(100dvh - 90px); overflow-y: auto; overscroll-behavior: contain; transform: translateX(-50%); }
+    .notification-menu { z-index: 80; top: calc(65px + env(safe-area-inset-top) + 8px); right: auto; left: 50%; width: min(320px, calc(100vw - 28px)); max-height: calc(100dvh - 90px); transform: translateX(-50%); }
     .view-toolbar { align-items: center; gap: 8px; }
     .filter-pills { min-width: 0; max-width: calc(100vw - 120px); align-items: center; gap: 4px; padding-bottom: 0; }
     .filter-pill { height: 34px; gap: 4px; padding: 0 5px; font-size: 9px; white-space: nowrap; }
